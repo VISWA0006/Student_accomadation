@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header(${isEdit} ? 'Edit Student' : 'Add Student')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/layout :: sidebar('students')}"></div>
+
+    <div class="main-wrapper">
+        <header class="top-navbar">
+            <div class="navbar-page-title">
+                <h1 th:text="${isEdit} ? 'Edit Student Details' : 'Register New Student'">Student Form</h1>
+                <p>Fill out the required information below</p>
+            </div>
+            <div class="navbar-actions">
+                <a th:href="@{/students}" class="btn btn-secondary">Back to List</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="card" style="max-width: 700px; margin: 0 auto;">
+                <div class="card-header">
+                    <div class="card-title" th:text="${isEdit} ? 'Update Student Record' : 'Student Registration'">Form</div>
+                </div>
+                <div class="card-body">
+                    <form th:action="${isEdit} ? @{/students/{id}/edit(id=${student.id})} : @{/students}"
+                          th:object="${student}" method="post">
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="fullName">Full Name *</label>
+                                <input type="text" id="fullName" th:field="*{fullName}" class="form-control" placeholder="e.g. John Doe">
+                                <div class="form-error" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">Name Error</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="registerNumber">Register Number *</label>
+                                <input type="text" id="registerNumber" th:field="*{registerNumber}" class="form-control" placeholder="e.g. 2024CS101">
+                                <div class="form-error" th:if="${#fields.hasErrors('registerNumber')}" th:errors="*{registerNumber}">Reg Error</div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="email">Email Address *</label>
+                                <input type="email" id="email" th:field="*{email}" class="form-control" placeholder="student@college.edu">
+                                <div class="form-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Email Error</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="phoneNumber">Phone Number *</label>
+                                <input type="text" id="phoneNumber" th:field="*{phoneNumber}" class="form-control" placeholder="+91 9876543210">
+                                <div class="form-error" th:if="${#fields.hasErrors('phoneNumber')}" th:errors="*{phoneNumber}">Phone Error</div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="department">Department *</label>
+                                <select id="department" th:field="*{department}" class="form-select">
+                                    <option value="">-- Select Department --</option>
+                                    <option value="Computer Science">Computer Science</option>
+                                    <option value="Information Tech">Information Tech</option>
+                                    <option value="Electronics">Electronics</option>
+                                    <option value="Mechanical">Mechanical</option>
+                                    <option value="Civil Engineering">Civil Engineering</option>
+                                    <option value="Management">Management</option>
+                                </select>
+                                <div class="form-error" th:if="${#fields.hasErrors('department')}" th:errors="*{department}">Dept Error</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="yearOfStudy">Year of Study *</label>
+                                <select id="yearOfStudy" th:field="*{yearOfStudy}" class="form-select">
+                                    <option value="">-- Select Year --</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                                <div class="form-error" th:if="${#fields.hasErrors('yearOfStudy')}" th:errors="*{yearOfStudy}">Year Error</div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="width: 100%;">
+                                <label class="form-label" for="gender">Gender (Determines Hostel Allocation) *</label>
+                                <select id="gender" th:field="*{gender}" class="form-select">
+                                    <option value="MALE">🚹 Male (Allocated to Boys Hostel)</option>
+                                    <option value="FEMALE">🚺 Female (Allocated to Girls Hostel)</option>
+                                </select>
+                                <div class="form-error" th:if="${#fields.hasErrors('gender')}" th:errors="*{gender}">Gender Error</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+                            <a th:href="@{/students}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary" th:text="${isEdit} ? 'Update Student' : 'Save Student'">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

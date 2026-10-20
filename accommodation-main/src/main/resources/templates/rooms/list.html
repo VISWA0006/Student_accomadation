@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Rooms')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/layout :: sidebar('rooms')}"></div>
+
+    <div class="main-wrapper">
+        <header class="top-navbar">
+            <div class="navbar-page-title">
+                <h1>Accommodation Rooms</h1>
+                <p>Monitor room occupancy, bed availability, and rental tiers</p>
+            </div>
+            <div class="navbar-actions">
+                <a th:href="@{/rooms/new}" class="btn btn-primary">+ Add Room</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div th:replace="~{fragments/layout :: alerts}"></div>
+
+            <div class="card">
+                <div class="card-header">
+                    <form th:action="@{/rooms}" method="get" class="filter-bar" style="margin-bottom:0; width:100%;">
+                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                            <label style="font-size: 13px; font-weight: 600;">Filter By:</label>
+                            <select name="roomType" class="form-select" style="width: 170px;">
+                                <option value="ALL" th:selected="${selectedType == 'ALL'}">All Room Types</option>
+                                <option value="Single" th:selected="${selectedType == 'Single'}">Single</option>
+                                <option value="Double Sharing" th:selected="${selectedType == 'Double Sharing'}">Double Sharing</option>
+                                <option value="Triple Sharing" th:selected="${selectedType == 'Triple Sharing'}">Triple Sharing</option>
+                            </select>
+
+                            <select name="hostelType" class="form-select" style="width: 160px;">
+                                <option value="ALL" th:selected="${selectedHostel == 'ALL'}">All Hostels</option>
+                                <option value="BOYS" th:selected="${selectedHostel == 'BOYS'}">🚹 Boys Hostel</option>
+                                <option value="GIRLS" th:selected="${selectedHostel == 'GIRLS'}">🚺 Girls Hostel</option>
+                                <option value="COED" th:selected="${selectedHostel == 'COED'}">🚻 Co-Ed Hostel</option>
+                            </select>
+
+                            <select name="status" class="form-select" style="width: 150px;">
+                                <option value="ALL" th:selected="${selectedStatus == 'ALL'}">All Statuses</option>
+                                <option value="AVAILABLE" th:selected="${selectedStatus == 'AVAILABLE'}">AVAILABLE</option>
+                                <option value="FULL" th:selected="${selectedStatus == 'FULL'}">FULL</option>
+                            </select>
+
+                            <button type="submit" class="btn btn-primary btn-sm">Apply Filter</button>
+                            <a th:href="@{/rooms}" class="btn btn-secondary btn-sm">Reset</a>
+                        </div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">
+                            Total rooms: <strong th:text="${#lists.size(rooms)}">0</strong>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>Room No</th>
+                                <th>Hostel Type</th>
+                                <th>Building</th>
+                                <th>Room Type</th>
+                                <th>Total Capacity</th>
+                                <th>Occupied Beds</th>
+                                <th>Available Beds</th>
+                                <th>Monthly Rent</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(rooms)}">
+                                <td colspan="10" style="text-align: center; color: var(--text-secondary); padding: 24px;">
+                                    No rooms found matching the filter.
+                                </td>
+                            </tr>
+                            <tr th:each="r : ${rooms}">
+                                <td>
+                                    <strong th:text="${r.roomNumber}">A-101</strong>
+                                </td>
+                                <td>
+                                    <span th:class="'badge ' + (${r.hostelType == 'GIRLS'} ? 'badge-girls' : (${r.hostelType == 'COED'} ? 'badge-coed' : 'badge-boys'))"
+                                          th:text="${r.hostelType == 'GIRLS'} ? '🚺 Girls' : (${r.hostelType == 'COED'} ? '🚻 Co-Ed' : '🚹 Boys')">🚹 Boys</span>
+                                </td>
+                                <td th:text="${r.buildingName}">Kaveri Hostel</td>
+                                <td>
+                                    <span class="badge badge-type" th:text="${r.roomType}">Single</span>
+                                </td>
+                                <td th:text="${r.capacity}">1</td>
+                                <td th:text="${r.occupiedBeds}">0</td>
+                                <td>
+                                    <strong th:style="${r.getAvailableBeds() > 0} ? 'color: var(--success);' : 'color: var(--danger);'"
+                                            th:text="${r.getAvailableBeds()} + ' bed(s)'">1 bed(s)</strong>
+                                </td>
+                                <td th:text="'₹' + ${#numbers.formatDecimal(r.monthlyRent, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</td>
+                                <td>
+                                    <span th:class="'badge ' + (${r.status == 'AVAILABLE'} ? 'badge-available' : 'badge-full')"
+                                          th:text="${r.status}">AVAILABLE</span>
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 6px;">
+                                        <a th:href="@{/rooms/{id}/edit(id=${r.id})}" class="btn btn-secondary btn-sm" title="Edit">✏️</a>
+                                        <form th:action="@{/rooms/{id}/delete(id=${r.id})}" method="post" style="display:inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Delete" onclick="return confirm('Are you sure you want to delete this room?')">🗑️</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

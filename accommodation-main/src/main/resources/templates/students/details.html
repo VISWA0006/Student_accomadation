@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Student Details')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/layout :: sidebar('students')}"></div>
+
+    <div class="main-wrapper">
+        <header class="top-navbar">
+            <div class="navbar-page-title">
+                <h1>Student Profile</h1>
+                <p>Detailed profile and accommodation record</p>
+            </div>
+            <div class="navbar-actions">
+                <a th:href="@{/students/{id}/edit(id=${student.id})}" class="btn btn-primary">Edit Profile</a>
+                <a th:href="@{/students}" class="btn btn-secondary">Back to Students</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title" th:text="${student.fullName}">Student Name</div>
+                    <span class="badge" style="background:#f1f5f9; color:#334155; font-size:13px;" th:text="${student.registerNumber}">REG123</span>
+                </div>
+                <div class="card-body">
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <span class="label">Database ID</span>
+                            <span class="value" th:text="${student.id}">1</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Department</span>
+                            <span class="value" th:text="${student.department}">Computer Science</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Year of Study</span>
+                            <span class="value" th:text="'Year ' + ${student.yearOfStudy}">Year 2</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Gender & Hostel Eligibility</span>
+                            <span class="value">
+                                <span th:class="'badge ' + (${student.gender == 'FEMALE'} ? 'badge-female' : 'badge-male')"
+                                      th:text="${student.gender == 'FEMALE'} ? '🚺 Female (Girls Hostel Only)' : '🚹 Male (Boys Hostel Only)'">🚹 Male</span>
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Email Address</span>
+                            <span class="value" th:text="${student.email}">student@college.edu</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Phone Number</span>
+                            <span class="value" th:text="${student.phoneNumber}">+91 9876543210</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Bookings via HQL Query 2 -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Active Accommodation Allocation (Retrieved via HQL)</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top:2px;">
+                            Executed: <code>SELECT b FROM Booking b WHERE b.student.id = :studentId AND b.status = 'ACTIVE'</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Room Number</th>
+                                <th>Building</th>
+                                <th>Room Type</th>
+                                <th>Monthly Rent</th>
+                                <th>Booking Date</th>
+                                <th>Status</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(activeBookings)}">
+                                <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                                    This student does not currently hold an active room allocation.
+                                    <a th:href="@{/bookings/new}">Book a room</a>
+                                </td>
+                            </tr>
+                            <tr th:each="b : ${activeBookings}">
+                                <td th:text="'#' + ${b.id}">#1</td>
+                                <td><strong th:text="${b.room.roomNumber}">A-101</strong></td>
+                                <td th:text="${b.room.buildingName}">Kaveri Hostel</td>
+                                <td th:text="${b.room.roomType}">Single</td>
+                                <td th:text="'₹' + ${b.room.monthlyRent}">₹6500</td>
+                                <td th:text="${b.bookingDate}">2026-10-19</td>
+                                <td><span class="badge badge-active" th:text="${b.status}">ACTIVE</span></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

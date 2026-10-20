@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="header(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - Student Accommodation System'">Student Accommodation System</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%200%20100%20100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
+</head>
+<body>
+
+<div th:fragment="sidebar(activeTab)" class="sidebar">
+    <div class="sidebar-header">
+        <div class="brand-icon">🏢</div>
+        <div>
+            <div class="brand-title">HostelManager</div>
+            <div class="brand-subtitle">Accommodation System</div>
+        </div>
+    </div>
+
+    <ul class="sidebar-menu">
+        <li class="menu-item" th:classappend="${activeTab == 'dashboard'} ? 'active' : ''">
+            <a th:href="@{/dashboard}">
+                <span class="menu-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+        </li>
+        <li class="menu-item" th:classappend="${activeTab == 'students'} ? 'active' : ''">
+            <a th:href="@{/students}">
+                <span class="menu-icon">🎓</span>
+                <span>Students</span>
+            </a>
+        </li>
+        <li class="menu-item" th:classappend="${activeTab == 'rooms'} ? 'active' : ''">
+            <a th:href="@{/rooms}">
+                <span class="menu-icon">🛏️</span>
+                <span>Rooms</span>
+            </a>
+        </li>
+        <li class="menu-item" th:classappend="${activeTab == 'bookings'} ? 'active' : ''">
+            <a th:href="@{/bookings}">
+                <span class="menu-icon">📅</span>
+                <span>Bookings</span>
+            </a>
+        </li>
+        <li class="menu-item" th:classappend="${activeTab == 'api'} ? 'active' : ''">
+            <a th:href="@{/api-info}">
+                <span class="menu-icon">⚡</span>
+                <span>REST API Guide</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="sidebar-footer">
+        <div><span class="badge-status"></span> System Online</div>
+        <div style="margin-top: 4px; font-size: 11px;">Spring Boot &bull; PostgreSQL</div>
+    </div>
+</div>
+
+<div th:fragment="alerts">
+    <div th:if="${successMessage}" class="alert alert-success">
+        <span>✅</span>
+        <span th:text="${successMessage}">Operation successful!</span>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger">
+        <span>⚠️</span>
+        <span th:text="${errorMessage}">An error occurred!</span>
+    </div>
+</div>
+
+<div th:fragment="scripts">
+    <script th:src="@{/js/main.js}"></script>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header(${isEdit} ? 'Edit Room' : 'Add Room')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/layout :: sidebar('rooms')}"></div>
+
+    <div class="main-wrapper">
+        <header class="top-navbar">
+            <div class="navbar-page-title">
+                <h1 th:text="${isEdit} ? 'Edit Room Details' : 'Add Accommodation Room'">Room Form</h1>
+                <p>Define room capacity, building assignment, and pricing</p>
+            </div>
+            <div class="navbar-actions">
+                <a th:href="@{/rooms}" class="btn btn-secondary">Back to Rooms</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="card" style="max-width: 700px; margin: 0 auto;">
+                <div class="card-header">
+                    <div class="card-title" th:text="${isEdit} ? 'Update Room Record' : 'Create Room'">Form</div>
+                </div>
+                <div class="card-body">
+                    <form th:action="${isEdit} ? @{/rooms/{id}/edit(id=${room.id})} : @{/rooms}"
+                          th:object="${room}" method="post">
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="roomNumber">Room Number *</label>
+                                <input type="text" id="roomNumber" th:field="*{roomNumber}" class="form-control" placeholder="e.g. A-101">
+                                <div class="form-error" th:if="${#fields.hasErrors('roomNumber')}" th:errors="*{roomNumber}">Error</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="buildingName">Building Name *</label>
+                                <input type="text" id="buildingName" th:field="*{buildingName}" class="form-control" placeholder="e.g. Ganga Hostel">
+                                <div class="form-error" th:if="${#fields.hasErrors('buildingName')}" th:errors="*{buildingName}">Error</div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="roomType">Room Type *</label>
+                                <select id="roomType" th:field="*{roomType}" class="form-select">
+                                    <option value="Single">Single</option>
+                                    <option value="Double Sharing">Double Sharing</option>
+                                    <option value="Triple Sharing">Triple Sharing</option>
+                                </select>
+                                <div class="form-error" th:if="${#fields.hasErrors('roomType')}" th:errors="*{roomType}">Error</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="capacity">Total Bed Capacity *</label>
+                                <input type="number" id="capacity" th:field="*{capacity}" class="form-control" min="1" max="10">
+                                <div class="form-error" th:if="${#fields.hasErrors('capacity')}" th:errors="*{capacity}">Error</div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="occupiedBeds">Occupied Beds *</label>
+                                <input type="number" id="occupiedBeds" th:field="*{occupiedBeds}" class="form-control" min="0">
+                                <div class="form-error" th:if="${#fields.hasErrors('occupiedBeds')}" th:errors="*{occupiedBeds}">Error</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="monthlyRent">Monthly Rent (₹) *</label>
+                                <input type="number" step="100" id="monthlyRent" th:field="*{monthlyRent}" class="form-control" placeholder="5000">
+                                <div class="form-error" th:if="${#fields.hasErrors('monthlyRent')}" th:errors="*{monthlyRent}">Error</div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="width: 100%;">
+                                <label class="form-label" for="hostelType">Hostel Category (Boys / Girls Split) *</label>
+                                <select id="hostelType" th:field="*{hostelType}" class="form-select">
+                                    <option value="BOYS">🚹 Boys Hostel (Only Male students allowed)</option>
+                                    <option value="GIRLS">🚺 Girls Hostel (Only Female students allowed)</option>
+                                    <option value="COED">🚻 Co-Ed Hostel (All students allowed)</option>
+                                </select>
+                                <div class="form-error" th:if="${#fields.hasErrors('hostelType')}" th:errors="*{hostelType}">Error</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+                            <a th:href="@{/rooms}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary" th:text="${isEdit} ? 'Update Room' : 'Save Room'">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>
