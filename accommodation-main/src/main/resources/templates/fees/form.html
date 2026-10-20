@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Assign Hostel Fee')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/layout :: sidebar('fees')}"></div>
+
+    <div class="main-wrapper">
+        <header class="top-navbar">
+            <div class="navbar-page-title">
+                <h1>Assign Student Hostel Fee</h1>
+                <p>Create a fee obligation record for a student with automatic balance and status tracking</p>
+            </div>
+            <div class="navbar-actions">
+                <a th:href="@{/fees}" class="btn btn-secondary btn-sm">&larr; Back to Fee List</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div th:replace="~{fragments/layout :: alerts}"></div>
+
+            <div class="card" style="max-width: 760px; margin: 0 auto;">
+                <div class="card-header">
+                    <div class="card-title">New Fee Assignment Form</div>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/fees}" th:object="${feeRequest}" method="post">
+                        <!-- Student Selection -->
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label for="studentId">Select Student <span style="color: var(--danger);">*</span></label>
+                            <select id="studentId" th:field="*{studentId}" class="form-control"
+                                    th:classappend="${#fields.hasErrors('studentId')} ? 'is-invalid' : ''" required>
+                                <option value="">-- Choose an Enrolled Student --</option>
+                                <option th:each="st : ${students}"
+                                        th:value="${st.id}"
+                                        th:text="${st.fullName} + ' (' + ${st.registerNumber} + ' - ' + ${st.department} + ')'">
+                                    Student Name
+                                </option>
+                            </select>
+                            <div th:if="${#fields.hasErrors('studentId')}" class="invalid-feedback" th:errors="*{studentId}"></div>
+                        </div>
+
+                        <!-- Hostel & Room -->
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                            <div class="form-group">
+                                <label for="hostelName">Hostel Name <span style="color: var(--danger);">*</span></label>
+                                <input type="text" id="hostelName" th:field="*{hostelName}" class="form-control"
+                                       placeholder="e.g. Kaveri Boys Hostel" required
+                                       th:classappend="${#fields.hasErrors('hostelName')} ? 'is-invalid' : ''">
+                                <div th:if="${#fields.hasErrors('hostelName')}" class="invalid-feedback" th:errors="*{hostelName}"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="roomNumber">Room Number <span style="color: var(--danger);">*</span></label>
+                                <input type="text" id="roomNumber" th:field="*{roomNumber}" class="form-control"
+                                       placeholder="e.g. A-101" required
+                                       th:classappend="${#fields.hasErrors('roomNumber')} ? 'is-invalid' : ''">
+                                <div th:if="${#fields.hasErrors('roomNumber')}" class="invalid-feedback" th:errors="*{roomNumber}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Fee Type -->
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label for="feeType">Fee Type <span style="color: var(--danger);">*</span></label>
+                            <select id="feeType" th:field="*{feeType}" class="form-control" required>
+                                <option th:each="type : ${feeTypes}"
+                                        th:value="${type}"
+                                        th:text="${type.displayName}">Fee Type</option>
+                            </select>
+                        </div>
+
+                        <!-- Total Fee Amount and Due Date -->
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                            <div class="form-group">
+                                <label for="totalAmount">Total Fee Amount (₹) <span style="color: var(--danger);">*</span></label>
+                                <input type="number" step="0.01" min="1.0" id="totalAmount" th:field="*{totalAmount}"
+                                       class="form-control" placeholder="e.g. 6500.00" required
+                                       th:classappend="${#fields.hasErrors('totalAmount')} ? 'is-invalid' : ''">
+                                <div th:if="${#fields.hasErrors('totalAmount')}" class="invalid-feedback" th:errors="*{totalAmount}"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="dueDate">Payment Due Date <span style="color: var(--danger);">*</span></label>
+                                <input type="date" id="dueDate" th:field="*{dueDate}" class="form-control" required
+                                       th:classappend="${#fields.hasErrors('dueDate')} ? 'is-invalid' : ''">
+                                <div th:if="${#fields.hasErrors('dueDate')}" class="invalid-feedback" th:errors="*{dueDate}"></div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                            <a th:href="@{/fees}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save & Assign Fee</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Hostel Fee Management')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/layout :: sidebar('fees')}"></div>
+
+    <div class="main-wrapper">
+        <header class="top-navbar">
+            <div class="navbar-page-title">
+                <h1>Hostel Fee Management</h1>
+                <p>Track student accommodation fees, process payments, and oversee collection status</p>
+            </div>
+            <div th:replace="~{fragments/layout :: navbarActions('fees')}"></div>
+        </header>
+
+        <main class="content-area">
+            <div th:replace="~{fragments/layout :: alerts}"></div>
+
+            <!-- Financial Statistics Overview -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon students">💰</div>
+                    <div class="stat-details">
+                        <h3 th:text="'₹' + ${#numbers.formatDecimal(stats.totalFeesDue, 1, 'COMMA', 2, 'POINT')}">₹0.00</h3>
+                        <p>Total Fees Due</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon available">✅</div>
+                    <div class="stat-details">
+                        <h3 th:text="'₹' + ${#numbers.formatDecimal(stats.totalAmountCollected, 1, 'COMMA', 2, 'POINT')}">₹0.00</h3>
+                        <p>Total Amount Collected</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon occupied">🚨</div>
+                    <div class="stat-details">
+                        <h3 th:text="'₹' + ${#numbers.formatDecimal(stats.totalOutstandingBalance, 1, 'COMMA', 2, 'POINT')}">₹0.00</h3>
+                        <p>Outstanding Balance</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon rooms">📈</div>
+                    <div class="stat-details">
+                        <h3 th:text="${stats.collectionRate} + '%'">0%</h3>
+                        <p>Collection Efficiency</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-body">
+                    <form th:action="@{/fees}" method="get" class="filter-form">
+                        <div class="form-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: flex-end;">
+                            <div class="form-group">
+                                <label for="search">Search Student</label>
+                                <input type="text" id="search" name="search" th:value="${filter.search}"
+                                       class="form-control" placeholder="Name or Reg Number...">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="hostelName">Hostel</label>
+                                <input type="text" id="hostelName" name="hostelName" th:value="${filter.hostelName}"
+                                       class="form-control" placeholder="Hostel Name...">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="roomNumber">Room</label>
+                                <input type="text" id="roomNumber" name="roomNumber" th:value="${filter.roomNumber}"
+                                       class="form-control" placeholder="Room No...">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="status">Payment Status</label>
+                                <select id="status" name="status" class="form-control">
+                                    <option value="">All Statuses</option>
+                                    <option th:each="st : ${statuses}"
+                                            th:value="${st}"
+                                            th:text="${st.displayName}"
+                                            th:selected="${filter.status == st}">Status</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" style="display: flex; gap: 8px;">
+                                <button type="submit" class="btn btn-primary" style="flex: 1;">Filter</button>
+                                <a th:href="@{/fees}" class="btn btn-secondary">Reset</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Fees Table Card -->
+            <div class="card">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div class="card-title">
+                        <span>Hostel Fee Records</span>
+                        <span class="badge" style="background: var(--primary-light); color: var(--primary); margin-left: 8px;"
+                              th:text="${fees.size()} + ' Records'">0 Records</span>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <a th:href="@{/fees/overdue}" class="btn btn-danger btn-sm">🚨 Overdue Dashboard</a>
+                        <form th:action="@{/fees/run-reminders}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Scan and trigger upcoming and overdue reminders">
+                                ⚡ Run Reminder Scan
+                            </button>
+                        </form>
+                        <a th:href="@{/fees/new}" class="btn btn-primary btn-sm">+ Assign Fee</a>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Student</th>
+                                <th>Hostel & Room</th>
+                                <th>Fee Type</th>
+                                <th>Total Fee</th>
+                                <th>Amount Paid</th>
+                                <th>Remaining Balance</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(fees)}">
+                                <td colspan="10" class="text-center" style="padding: 32px; color: var(--text-muted);">
+                                    No hostel fee records found matching your filter criteria.
+                                </td>
+                            </tr>
+                            <tr th:each="fee : ${fees}">
+                                <td th:text="'#' + ${fee.id}">#1</td>
+                                <td>
+                                    <div style="font-weight: 600;" th:text="${fee.student.fullName}">Aarav Sharma</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);" th:text="${fee.student.registerNumber}">2024CS101</div>
+                                </td>
+                                <td>
+                                    <div th:text="${fee.hostelName}">Kaveri Boys Hostel</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);" th:text="'Room: ' + ${fee.roomNumber}">Room: A-101</div>
+                                </td>
+                                <td>
+                                    <span class="fee-type-badge" th:text="${fee.feeType.displayName}">Monthly Fee</span>
+                                </td>
+                                <td style="font-weight: 600;" th:text="'₹' + ${#numbers.formatDecimal(fee.totalAmount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</td>
+                                <td style="color: var(--success); font-weight: 600;" th:text="'₹' + ${#numbers.formatDecimal(fee.paidAmount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</td>
+                                <td>
+                                    <span th:if="${fee.remainingBalance > 0}" style="color: var(--danger); font-weight: 700;"
+                                          th:text="'₹' + ${#numbers.formatDecimal(fee.remainingBalance, 1, 'COMMA', 2, 'POINT')}">₹0.00</span>
+                                    <span th:if="${fee.remainingBalance == 0}" style="color: var(--success); font-weight: 600;">₹0.00 (Cleared)</span>
+                                </td>
+                                <td>
+                                    <div th:text="${fee.dueDate}">2026-10-25</div>
+                                    <div th:if="${fee.status.name() == 'OVERDUE'}" style="font-size: 11px; color: var(--danger); font-weight: 700;">
+                                        <span th:text="${fee.getDaysOverdue(null)} + ' days overdue!'">12 days overdue</span>
+                                    </div>
+                                    <div th:if="${fee.status.name() == 'UPCOMING'}" style="font-size: 11px; color: var(--warning); font-weight: 600;">
+                                        Due soon
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge" th:classappend="${fee.status.badgeClass}"
+                                          th:text="${fee.status.displayName}">Status</span>
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 6px;">
+                                        <a th:href="@{'/fees/' + ${fee.id}}" class="btn btn-secondary btn-sm">View & Pay</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

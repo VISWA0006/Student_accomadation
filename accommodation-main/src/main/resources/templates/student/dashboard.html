@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Student Fee Portal')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/layout :: sidebar('student-portal')}"></div>
+
+    <div class="main-wrapper">
+        <header class="top-navbar">
+            <div class="navbar-page-title">
+                <h1>🎓 Student Accommodation & Fee Portal</h1>
+                <p th:text="'Personal student dashboard for ' + ${student.fullName} + ' (' + ${student.registerNumber} + ')'">Student Portal</p>
+            </div>
+            <div th:replace="~{fragments/layout :: navbarActions('student-portal')}"></div>
+        </header>
+
+        <main class="content-area">
+            <div th:replace="~{fragments/layout :: alerts}"></div>
+
+            <!-- Student Profile Header Banner -->
+            <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: #fff;">
+                <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85;">LOGGED IN STUDENT PROFILE</div>
+                        <h2 style="font-size: 26px; font-weight: 800; margin: 4px 0;" th:text="${student.fullName}">Aarav Sharma</h2>
+                        <div style="font-size: 14px; opacity: 0.9;">
+                            <span th:text="'Register No: ' + ${student.registerNumber}">2024CS101</span> &bull;
+                            <span th:text="${student.department}">Computer Science</span> &bull;
+                            <span th:text="'Year ' + ${student.yearOfStudy}">Year 2</span> &bull;
+                            <span th:text="'Gender: ' + ${student.gender}">Gender: MALE</span>
+                        </div>
+                    </div>
+
+                    <!-- Switch Active Student Persona Dropdown -->
+                    <div style="background: rgba(255, 255, 255, 0.15); padding: 12px 18px; border-radius: var(--radius-md); backdrop-filter: blur(8px);">
+                        <label for="studentSwitcher" style="font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 6px; font-weight: 600;">
+                            Switch Demo Student Persona:
+                        </label>
+                        <select id="studentSwitcher" class="form-select form-select-sm"
+                                onchange="window.location.href='/student/switch?role=STUDENT&studentId=' + this.value;"
+                                style="background: #fff; color: var(--dark); font-weight: 600;">
+                            <option th:each="st : ${allStudents}"
+                                    th:value="${st.id}"
+                                    th:text="${st.fullName} + ' (' + ${st.registerNumber} + ')'"
+                                    th:selected="${st.id == student.id}">
+                                Student
+                            </option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 Financial Summary Cards for Student -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon students">💰</div>
+                    <div class="stat-details">
+                        <h3 th:text="'₹' + ${#numbers.formatDecimal(totalFees, 1, 'COMMA', 2, 'POINT')}">₹0.00</h3>
+                        <p>Total Hostel Fees</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon available">✅</div>
+                    <div class="stat-details">
+                        <h3 style="color: var(--success);" th:text="'₹' + ${#numbers.formatDecimal(totalPaid, 1, 'COMMA', 2, 'POINT')}">₹0.00</h3>
+                        <p>Total Amount Paid</p>
+                    </div>
+                </div>
+
+                <div class="stat-card" th:style="${totalBalance > 0} ? 'border-left: 4px solid var(--danger);' : 'border-left: 4px solid var(--success);'">
+                    <div class="stat-icon occupied">🚨</div>
+                    <div class="stat-details">
+                        <h3 th:style="${totalBalance > 0} ? 'color: var(--danger);' : 'color: var(--success);'"
+                            th:text="'₹' + ${#numbers.formatDecimal(totalBalance, 1, 'COMMA', 2, 'POINT')}">₹0.00</h3>
+                        <p>Outstanding Balance</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon bookings">📅</div>
+                    <div class="stat-details">
+                        <h3 th:if="${nextDueDate != null}" th:text="${nextDueDate}">2026-10-25</h3>
+                        <h3 th:if="${nextDueDate == null}" style="color: var(--success); font-size: 18px;">All Cleared</h3>
+                        <p>Next Due Date</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Assigned Hostel Fees Table -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="card-title">My Hostel Fee Obligations</div>
+                    <a th:href="@{/notifications}" class="btn btn-secondary btn-sm">🔔 View My Alerts</a>
+                </div>
+
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>Hostel & Room</th>
+                                <th>Fee Type</th>
+                                <th>Total Fee</th>
+                                <th>Amount Paid</th>
+                                <th>Remaining Balance</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Receipt / Details</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(fees)}">
+                                <td colspan="8" class="text-center" style="padding: 30px; color: var(--text-muted);">
+                                    No hostel fee records assigned to your student profile yet.
+                                </td>
+                            </tr>
+                            <tr th:each="fee : ${fees}">
+                                <td>
+                                    <div style="font-weight: 600;" th:text="${fee.hostelName}">Hostel Name</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);" th:text="'Room ' + ${fee.roomNumber}">Room</div>
+                                </td>
+                                <td>
+                                    <span class="fee-type-badge" th:text="${fee.feeType.displayName}">Monthly Fee</span>
+                                </td>
+                                <td style="font-weight: 600;" th:text="'₹' + ${#numbers.formatDecimal(fee.totalAmount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</td>
+                                <td style="color: var(--success); font-weight: 600;" th:text="'₹' + ${#numbers.formatDecimal(fee.paidAmount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</td>
+                                <td>
+                                    <span th:if="${fee.remainingBalance > 0}" style="color: var(--danger); font-weight: 800;"
+                                          th:text="'₹' + ${#numbers.formatDecimal(fee.remainingBalance, 1, 'COMMA', 2, 'POINT')}">₹0.00</span>
+                                    <span th:if="${fee.remainingBalance == 0}" style="color: var(--success); font-weight: 600;">₹0.00 (Cleared)</span>
+                                </td>
+                                <td>
+                                    <span th:text="${fee.dueDate}">2026-10-25</span>
+                                    <div th:if="${fee.status.name() == 'OVERDUE'}" style="font-size: 11px; color: var(--danger); font-weight: 700;">
+                                        🚨 <span th:text="${fee.getDaysOverdue(today)} + ' days overdue!'">12 days overdue</span>
+                                    </div>
+                                    <div th:if="${fee.status.name() == 'UPCOMING'}" style="font-size: 11px; color: var(--warning); font-weight: 600;">
+                                        ⏳ Due soon
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge" th:classappend="${fee.status.badgeClass}"
+                                          th:text="${fee.status.displayName}">Status</span>
+                                </td>
+                                <td>
+                                    <a th:href="@{'/fees/' + ${fee.id}}" class="btn btn-secondary btn-sm">View Breakdown</a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Payment History & Receipts -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">My Payment History & Official Receipts</div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>Payment Date</th>
+                                <th>Fee Type</th>
+                                <th>Amount Paid</th>
+                                <th>Payment Method</th>
+                                <th>Reference ID</th>
+                                <th>Receipt Number</th>
+                                <th>Download / View</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(transactions)}">
+                                <td colspan="7" class="text-center" style="padding: 24px; color: var(--text-muted);">
+                                    No payment transactions recorded yet.
+                                </td>
+                            </tr>
+                            <tr th:each="tx : ${transactions}">
+                                <td th:text="${tx.paymentDate}">2026-10-20</td>
+                                <td th:text="${tx.hostelFee.feeType.displayName}">Monthly Fee</td>
+                                <td style="color: var(--success); font-weight: 700;"
+                                    th:text="'₹' + ${#numbers.formatDecimal(tx.amount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</td>
+                                <td>
+                                    <span class="badge" style="background: var(--bg-main); color: var(--text-secondary);"
+                                          th:text="${tx.paymentMethod}">UPI</span>
+                                </td>
+                                <td style="font-family: monospace; font-size: 12px;" th:text="${tx.transactionReference}">UTR-12345</td>
+                                <td>
+                                    <code style="color: var(--primary); font-weight: 600;" th:text="${tx.receiptNumber}">REC-1001</code>
+                                </td>
+                                <td>
+                                    <a th:href="@{'/fees/receipts/' + ${tx.receiptNumber}}" target="_blank" class="btn btn-primary btn-sm">
+                                        📄 Official Receipt
+                                    </a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

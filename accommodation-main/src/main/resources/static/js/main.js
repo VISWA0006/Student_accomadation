@@ -1,5 +1,41 @@
 // Student Accommodation Management System - Client Script
 
+function updateGlobalUnreadCounter() {
+    fetch('/notifications/api/unread-count')
+        .then(response => {
+            if (!response.ok) return null;
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.unreadCount !== undefined) {
+                const navBadge = document.getElementById('navNotifBadge');
+                const sidebarBadge = document.getElementById('sidebarNotifBadge');
+                const displayCount = data.unreadCount;
+
+                if (navBadge) {
+                    if (displayCount > 0) {
+                        navBadge.textContent = displayCount > 99 ? '99+' : displayCount;
+                        navBadge.style.display = 'flex';
+                    } else {
+                        navBadge.style.display = 'none';
+                    }
+                }
+
+                if (sidebarBadge) {
+                    if (displayCount > 0) {
+                        sidebarBadge.textContent = displayCount;
+                        sidebarBadge.style.display = 'inline-block';
+                    } else {
+                        sidebarBadge.style.display = 'none';
+                    }
+                }
+            }
+        })
+        .catch(err => {
+            // Silently fail if server is reloading
+        });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Auto-dismiss alerts after 5 seconds
     const alerts = document.querySelectorAll('.alert');
@@ -25,4 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // 3. Initialize unread notification badges
+    updateGlobalUnreadCounter();
 });

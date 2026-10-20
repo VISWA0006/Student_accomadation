@@ -28,13 +28,19 @@ public class NotificationClientService {
 
     /**
      * Sends booking details to the Notification Microservice.
-     * If the notification service is offline/unavailable, this fails gracefully
-     * without rolling back or failing the student's booking transaction.
      */
     public boolean sendBookingNotification(NotificationPayload payload) {
+        return sendNotification(payload);
+    }
+
+    /**
+     * Sends any notification (booking, fee reminder, payment confirmation) to the microservice.
+     * Fails gracefully without failing the database transaction.
+     */
+    public boolean sendNotification(NotificationPayload payload) {
         try {
-            log.info("Sending booking notification to microservice at {}: student={}, room={}",
-                    notificationUrl, payload.getStudentName(), payload.getRoomNumber());
+            log.info("Sending [{}] notification to microservice at {}: student={}, room={}",
+                    payload.getEventType(), notificationUrl, payload.getStudentName(), payload.getRoomNumber());
 
             String response = restClient.post()
                     .uri(notificationUrl)
@@ -47,7 +53,7 @@ public class NotificationClientService {
             return true;
         } catch (Exception ex) {
             log.warn("Notification Service is unavailable or returned an error: {}. " +
-                     "Booking remains saved successfully (Graceful Degradation).", ex.getMessage());
+                     "Main transaction remains saved successfully (Graceful Degradation).", ex.getMessage());
             return false;
         }
     }

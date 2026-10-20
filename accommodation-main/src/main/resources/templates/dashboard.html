@@ -11,18 +11,32 @@
         <header class="top-navbar">
             <div class="navbar-page-title">
                 <h1>Dashboard Overview</h1>
-                <p>Real-time accommodation capacity and student allocation metrics</p>
+                <p>Real-time accommodation capacity, student allocations, and hostel fee analytics</p>
             </div>
-            <div class="navbar-actions">
-                <span class="system-badge">Port: 8085</span>
-                <a th:href="@{/bookings/new}" class="btn btn-primary btn-sm">+ New Booking</a>
-            </div>
+            <div th:replace="~{fragments/layout :: navbarActions('dashboard')}"></div>
         </header>
 
         <main class="content-area">
             <div th:replace="~{fragments/layout :: alerts}"></div>
 
-            <!-- Stats Grid -->
+            <!-- Overdue Fee Critical Alert Banner -->
+            <div th:if="${feeStats != null and feeStats.overdueStudentsCount > 0}"
+                 class="alert" style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fca5a5; color: #991b1b; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-radius: var(--radius-md); margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 26px;">🚨</span>
+                    <div>
+                        <strong style="font-size: 15px;">Hostel Fee Alert:</strong>
+                        <span th:text="${feeStats.overdueStudentsCount} + ' student(s) currently have OVERDUE hostel accommodation balances totaling ₹' + ${#numbers.formatDecimal(feeStats.totalOutstandingBalance, 1, 'COMMA', 2, 'POINT')} + '!'">
+                            Overdue balances detected.
+                        </span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <a th:href="@{/fees/overdue}" class="btn btn-danger btn-sm">Review Overdue Fees &rarr;</a>
+                </div>
+            </div>
+
+            <!-- Combined Accommodation & Fee Statistics Grid -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon students">🎓</div>
@@ -60,13 +74,83 @@
                     <div class="stat-icon bookings">📑</div>
                     <div class="stat-details">
                         <h3 th:text="${totalBookings}">0</h3>
-                        <p>Total Bookings</p>
+                        <p>Active Bookings</p>
+                    </div>
+                </div>
+
+                <div class="stat-card" style="border-left: 3px solid var(--success);">
+                    <div class="stat-icon available">💰</div>
+                    <div class="stat-details">
+                        <h3 style="color: var(--success);" th:text="'₹' + ${#numbers.formatDecimal(feeStats.totalAmountCollected, 1, 'COMMA', 0, 'POINT')}">₹0</h3>
+                        <p>Fees Collected</p>
+                    </div>
+                </div>
+
+                <div class="stat-card" style="border-left: 3px solid var(--danger);">
+                    <div class="stat-icon occupied">🚨</div>
+                    <div class="stat-details">
+                        <h3 style="color: var(--danger);" th:text="'₹' + ${#numbers.formatDecimal(feeStats.totalOutstandingBalance, 1, 'COMMA', 0, 'POINT')}">₹0</h3>
+                        <p>Total Outstanding</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon students">📈</div>
+                    <div class="stat-details">
+                        <h3 th:text="${feeStats.collectionRate} + '%'">0%</h3>
+                        <p>Collection Rate</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overdue Fees Snapshot (Highlighted for Wardens) -->
+            <div th:if="${not #lists.isEmpty(overdueFees)}" class="card" style="margin-bottom: 24px; border-left: 4px solid var(--danger);">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="card-title" style="color: var(--danger); display: flex; align-items: center; gap: 8px;">
+                        <span>🚨 Critical Attention: Students with Overdue Balances</span>
+                        <span class="badge badge-overdue" th:text="${overdueFees.size()} + ' Overdue'">0 Overdue</span>
+                    </div>
+                    <a th:href="@{/fees/overdue}" class="btn btn-secondary btn-sm">Full Overdue Dashboard &rarr;</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Hostel & Room</th>
+                                <th>Fee Type</th>
+                                <th>Outstanding Balance</th>
+                                <th>Due Date</th>
+                                <th>Days Overdue</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="ovFee : ${overdueFees}">
+                                <td style="font-weight: 600;" th:text="${ovFee.student.fullName}">Rahul Verma</td>
+                                <td th:text="${ovFee.hostelName} + ' (Room ' + ${ovFee.roomNumber} + ')'">Hostel Room</td>
+                                <td><span class="fee-type-badge" th:text="${ovFee.feeType.displayName}">Monthly Fee</span></td>
+                                <td>
+                                    <strong style="color: var(--danger);"
+                                            th:text="'₹' + ${#numbers.formatDecimal(ovFee.remainingBalance, 1, 'COMMA', 2, 'POINT')}">₹4,500.00</strong>
+                                </td>
+                                <td th:text="${ovFee.dueDate}">2026-10-08</td>
+                                <td>
+                                    <span class="badge badge-overdue" th:text="${ovFee.getDaysOverdue(today)} + ' days overdue'">12 days overdue</span>
+                                </td>
+                                <td>
+                                    <a th:href="@{'/fees/' + ${ovFee.id}}" class="btn btn-primary btn-sm">Record Payment</a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
             <!-- Recent Bookings Table -->
-            <div class="card">
+            <div class="card" style="margin-bottom: 24px;">
                 <div class="card-header">
                     <div class="card-title">Recent Accommodation Bookings</div>
                     <a th:href="@{/bookings}" class="btn btn-secondary btn-sm">View All Bookings</a>
@@ -78,46 +162,32 @@
                             <tr>
                                 <th>Booking ID</th>
                                 <th>Student</th>
-                                <th>Register No</th>
-                                <th>Room Number</th>
-                                <th>Building</th>
+                                <th>Room</th>
+                                <th>Building / Hostel</th>
+                                <th>Monthly Rent</th>
                                 <th>Booking Date</th>
                                 <th>Status</th>
-                                <th>Action</th>
                             </tr>
                             </thead>
                             <tbody>
                             <tr th:if="${#lists.isEmpty(recentBookings)}">
-                                <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 20px;">
-                                    No bookings found. <a th:href="@{/bookings/new}">Create first booking</a>
+                                <td colspan="7" class="text-center" style="padding: 24px; color: var(--text-muted);">
+                                    No active room allocations found.
                                 </td>
                             </tr>
-                            <tr th:each="b : ${recentBookings}">
-                                <td th:text="'#' + ${b.id}">#1</td>
+                            <tr th:each="booking : ${recentBookings}">
+                                <td th:text="'#' + ${booking.id}">#1</td>
                                 <td>
-                                    <strong th:text="${b.student.fullName}">Student Name</strong>
-                                    <span th:class="'badge ' + (${b.student.gender == 'FEMALE'} ? 'badge-female' : 'badge-male')"
-                                          style="font-size: 10px; padding: 1px 5px; margin-left: 3px;"
-                                          th:text="${b.student.gender == 'FEMALE'} ? '🚺 F' : '🚹 M'">🚹 M</span>
+                                    <div style="font-weight: 600;" th:text="${booking.student.fullName}">Student Name</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);" th:text="${booking.student.registerNumber}">RegNo</div>
                                 </td>
-                                <td th:text="${b.student.registerNumber}">REG123</td>
-                                <td th:text="${b.room.roomNumber}">A-101</td>
+                                <td style="font-weight: 600;" th:text="${booking.room.roomNumber}">A-101</td>
+                                <td th:text="${booking.room.buildingName}">Kaveri Hostel</td>
+                                <td style="font-weight: 600;" th:text="'₹' + ${booking.room.monthlyRent}">₹6500</td>
+                                <td th:text="${booking.bookingDate}">2026-10-01</td>
                                 <td>
-                                    <span th:text="${b.room.buildingName}">Kaveri Hostel</span>
-                                    <span th:class="'badge ' + (${b.room.hostelType == 'GIRLS'} ? 'badge-girls' : (${b.room.hostelType == 'COED'} ? 'badge-coed' : 'badge-boys'))"
-                                          style="font-size: 9px; padding: 1px 5px; margin-left: 3px;"
-                                          th:text="${b.room.hostelType == 'GIRLS'} ? 'Girls' : (${b.room.hostelType == 'COED'} ? 'Co-Ed' : 'Boys')">Boys</span>
-                                </td>
-                                <td th:text="${b.bookingDate}">2026-10-19</td>
-                                <td>
-                                    <span th:class="'badge ' + (${b.status == 'ACTIVE'} ? 'badge-active' : 'badge-cancelled')"
-                                          th:text="${b.status}">ACTIVE</span>
-                                </td>
-                                <td>
-                                    <form th:if="${b.status == 'ACTIVE'}" th:action="@{/bookings/{id}/cancel(id=${b.id})}" method="post" style="display:inline;">
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Cancel this booking and release room bed?')">Cancel</button>
-                                    </form>
-                                    <span th:if="${b.status != 'ACTIVE'}" style="color: var(--text-muted); font-size: 12px;">Cancelled</span>
+                                    <span class="badge" th:classappend="${booking.status == 'ACTIVE'} ? 'badge-available' : 'badge-full'"
+                                          th:text="${booking.status}">ACTIVE</span>
                                 </td>
                             </tr>
                             </tbody>
@@ -126,42 +196,42 @@
                 </div>
             </div>
 
-            <!-- Quick Links / Recent Students -->
+            <!-- Enrolled Students Snapshot -->
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title">Enrolled Students Overview</div>
-                    <a th:href="@{/students/new}" class="btn btn-primary btn-sm">+ Add New Student</a>
+                    <div class="card-title">Enrolled Students Snapshot</div>
+                    <a th:href="@{/students}" class="btn btn-secondary btn-sm">Manage All Students</a>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>Register No</th>
                                 <th>Full Name</th>
-                                <th>Register Number</th>
+                                <th>Gender</th>
                                 <th>Department</th>
                                 <th>Year</th>
-                                <th>Action</th>
+                                <th>Email</th>
                             </tr>
                             </thead>
                             <tbody>
-                            <tr th:each="s : ${recentStudents}">
-                                <td th:text="${s.id}">1</td>
-                                <td th:text="${s.fullName}">Name</td>
-                                <td th:text="${s.registerNumber}">REG</td>
-                                <td th:text="${s.department}">Department</td>
-                                <td th:text="${s.yearOfStudy}">2</td>
+                            <tr th:each="student : ${recentStudents}">
+                                <td style="font-weight: 600;" th:text="${student.registerNumber}">2024CS101</td>
+                                <td th:text="${student.fullName}">Aarav Sharma</td>
                                 <td>
-                                    <a th:href="@{/students/{id}(id=${s.id})}" class="btn btn-secondary btn-sm">View Details</a>
+                                    <span class="badge" th:classappend="${student.gender == 'MALE'} ? 'badge-available' : 'badge-occupied'"
+                                          th:text="${student.gender}">MALE</span>
                                 </td>
+                                <td th:text="${student.department}">Computer Science</td>
+                                <td th:text="'Year ' + ${student.yearOfStudy}">2</td>
+                                <td th:text="${student.email}">student@college.edu</td>
                             </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-
         </main>
     </div>
 </div>

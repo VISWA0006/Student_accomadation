@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Hostel Fee Details')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/layout :: sidebar('fees')}"></div>
+
+    <div class="main-wrapper">
+        <header class="top-navbar">
+            <div class="navbar-page-title">
+                <h1>Fee Record & Payment Processing</h1>
+                <p th:text="'Fee Record #' + ${fee.id} + ' for ' + ${fee.student.fullName}">Fee Details</p>
+            </div>
+            <div class="navbar-actions">
+                <a th:href="@{/fees}" class="btn btn-secondary btn-sm">&larr; Back to Fees</a>
+                <a th:href="@{/fees/overdue}" class="btn btn-danger btn-sm">🚨 Overdue Dashboard</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div th:replace="~{fragments/layout :: alerts}"></div>
+
+            <!-- Fee Record Summary Banner -->
+            <div class="card" style="margin-bottom: 24px; border-left: 6px solid var(--primary);">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                                <h2 style="font-size: 22px; font-weight: 700;" th:text="${fee.student.fullName}">Aarav Sharma</h2>
+                                <span class="badge" th:classappend="${fee.status.badgeClass}"
+                                      th:text="${fee.status.displayName}" style="font-size: 13px; padding: 4px 10px;">Status</span>
+                                <span th:if="${fee.status.name() == 'OVERDUE'}" class="badge badge-overdue" style="font-size: 13px;">
+                                    🚨 <strong th:text="${fee.getDaysOverdue(today)}">12</strong> Days Overdue
+                                </span>
+                            </div>
+                            <div style="color: var(--text-secondary); font-size: 14px;">
+                                <span th:text="'Reg: ' + ${fee.student.registerNumber}">2024CS101</span> &bull;
+                                <span th:text="${fee.student.department}">Computer Science</span> &bull;
+                                <span th:text="'Hostel: ' + ${fee.hostelName} + ' (Room ' + ${fee.roomNumber} + ')'">Hostel Info</span>
+                            </div>
+                            <div style="margin-top: 8px;">
+                                <span class="fee-type-badge" th:text="${fee.feeType.displayName}">Monthly Hostel Fee</span>
+                            </div>
+                        </div>
+
+                        <!-- Financial Metric Snapshot -->
+                        <div style="display: flex; gap: 24px; background: var(--bg-main); padding: 16px 24px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div>
+                                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Total Fee</div>
+                                <div style="font-size: 18px; font-weight: 700;" th:text="'₹' + ${#numbers.formatDecimal(fee.totalAmount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Amount Paid</div>
+                                <div style="font-size: 18px; font-weight: 700; color: var(--success);" th:text="'₹' + ${#numbers.formatDecimal(fee.paidAmount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Remaining Balance</div>
+                                <div style="font-size: 18px; font-weight: 800;"
+                                     th:classappend="${fee.remainingBalance > 0} ? 'text-danger' : 'text-success'"
+                                     th:text="'₹' + ${#numbers.formatDecimal(fee.remainingBalance, 1, 'COMMA', 2, 'POINT')}">₹0.00</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Due Date</div>
+                                <div style="font-size: 16px; font-weight: 600;" th:text="${fee.dueDate}">2026-10-25</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two-Column Grid: Record Payment Form & History -->
+            <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px; align-items: flex-start;">
+                <!-- Payment Submission Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">💳 Record Fee Payment</div>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${fee.status.name() == 'PAID' or fee.remainingBalance <= 0}"
+                             class="alert alert-success" style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 24px;">✅</span>
+                            <div>
+                                <strong>Payment Complete!</strong>
+                                <p style="margin: 0; font-size: 13px;">This fee has been fully settled. No outstanding balance remains.</p>
+                            </div>
+                        </div>
+
+                        <form th:if="${fee.remainingBalance > 0}"
+                              th:action="@{'/fees/' + ${fee.id} + '/pay'}"
+                              th:object="${paymentDTO}" method="post">
+
+                            <div class="form-group" style="margin-bottom: 16px;">
+                                <label for="amount">Payment Amount (₹) <span style="color: var(--danger);">*</span></label>
+                                <input type="number" step="0.01" min="0.01"
+                                       th:max="${fee.remainingBalance}"
+                                       id="amount" th:field="*{amount}" class="form-control"
+                                       placeholder="Enter amount..." required
+                                       th:classappend="${#fields.hasErrors('amount')} ? 'is-invalid' : ''">
+                                <small style="color: var(--text-muted); font-size: 12px;"
+                                       th:text="'Maximum payable balance: ₹' + ${#numbers.formatDecimal(fee.remainingBalance, 1, 'COMMA', 2, 'POINT')}"></small>
+                                <div th:if="${#fields.hasErrors('amount')}" class="invalid-feedback" th:errors="*{amount}"></div>
+                            </div>
+
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label for="paymentDate">Payment Date <span style="color: var(--danger);">*</span></label>
+                                    <input type="date" id="paymentDate" th:field="*{paymentDate}" class="form-control" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="paymentMethod">Payment Method <span style="color: var(--danger);">*</span></label>
+                                    <select id="paymentMethod" th:field="*{paymentMethod}" class="form-control" required>
+                                        <option value="UPI">UPI / GPay / PhonePe</option>
+                                        <option value="Net Banking">Net Banking</option>
+                                        <option value="Credit Card">Credit Card</option>
+                                        <option value="Debit Card">Debit Card</option>
+                                        <option value="Demand Draft">Demand Draft (DD)</option>
+                                        <option value="Cash">Cash (Warden Desk)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 16px;">
+                                <label for="transactionReference">Transaction Reference / UTR Number <span style="color: var(--danger);">*</span></label>
+                                <input type="text" id="transactionReference" th:field="*{transactionReference}"
+                                       class="form-control" placeholder="e.g. UTR-202410-994827" required
+                                       th:classappend="${#fields.hasErrors('transactionReference')} ? 'is-invalid' : ''">
+                                <small style="color: var(--text-muted); font-size: 11px;">Must be unique. Prevents duplicate payments.</small>
+                                <div th:if="${#fields.hasErrors('transactionReference')}" class="invalid-feedback" th:errors="*{transactionReference}"></div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 16px;">
+                                <label for="recordedBy">Recorded By</label>
+                                <input type="text" id="recordedBy" th:field="*{recordedBy}" class="form-control" placeholder="Administrator Name">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label for="notes">Notes / Remarks</label>
+                                <textarea id="notes" th:field="*{notes}" class="form-control" rows="2" placeholder="Optional notes..."></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                                💸 Process & Generate Official Receipt
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Payment Audit History -->
+                <div class="card">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="card-title">
+                            <span>Payment History Audit Log</span>
+                            <span class="badge" style="background: var(--bg-main); color: var(--text-secondary); margin-left: 6px;"
+                                  th:text="${transactions.size()} + ' Payments'">0 Payments</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Receipt No</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(transactions)}">
+                                    <td colspan="5" class="text-center" style="padding: 24px; color: var(--text-muted);">
+                                        No payments recorded yet for this fee.
+                                    </td>
+                                </tr>
+                                <tr th:each="tx : ${transactions}">
+                                    <td>
+                                        <div style="font-weight: 500;" th:text="${tx.paymentDate}">2026-10-20</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);" th:text="${tx.transactionReference}">REF-123</div>
+                                    </td>
+                                    <td>
+                                        <span style="color: var(--success); font-weight: 700;"
+                                              th:text="'₹' + ${#numbers.formatDecimal(tx.amount, 1, 'COMMA', 2, 'POINT')}">₹2,000.00</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background: var(--bg-main); color: var(--text-secondary);"
+                                              th:text="${tx.paymentMethod}">UPI</span>
+                                    </td>
+                                    <td>
+                                        <code style="font-size: 12px; color: var(--primary);" th:text="${tx.receiptNumber}">REC-1001</code>
+                                    </td>
+                                    <td>
+                                        <a th:href="@{'/fees/receipts/' + ${tx.receiptNumber}}"
+                                           class="btn btn-secondary btn-sm" target="_blank" title="View & Print Official Receipt">
+                                            📄 Receipt
+                                        </a>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

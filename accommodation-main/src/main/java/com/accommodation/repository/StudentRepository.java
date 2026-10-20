@@ -23,10 +23,8 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> searchStudents(@Param("keyword") String keyword);
 
     /**
-     * HQL QUERY 1 (Assignment Requirement):
      * Demonstrates Hibernate Query Language (HQL) using @Query.
-     * Note: References the entity name 'Student' and entity property 'department',
-     * NOT database table/columns ('students', 'department').
+     * References the entity name 'Student' and entity property 'department'.
      */
     @Query("SELECT s FROM Student s WHERE LOWER(s.department) = LOWER(:dept)")
     List<Student> findStudentsByDepartmentHql(@Param("dept") String dept);

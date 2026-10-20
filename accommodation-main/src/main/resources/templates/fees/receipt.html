@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Official Receipt - ' + ${transaction.receiptNumber}">Official Fee Receipt</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        body {
+            background-color: #f1f5f9;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .receipt-card {
+            background: #fff;
+            max-width: 720px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            padding: 40px;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 80px;
+            font-weight: 900;
+            color: rgba(16, 185, 129, 0.06);
+            pointer-events: none;
+            text-transform: uppercase;
+        }
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+            .receipt-card {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="receipt-card">
+    <div class="watermark">OFFICIAL RECEIPT</div>
+
+    <!-- Actions Bar (Hidden when printing) -->
+    <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+        <a th:href="@{'/fees/' + ${fee.id}}" class="btn btn-secondary btn-sm">&larr; Back to Fee Details</a>
+        <button onclick="window.print()" class="btn btn-primary btn-sm">🖨️ Print / Download Receipt</button>
+    </div>
+
+    <!-- Header & Seal -->
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 20px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="font-size: 40px;">🏢</div>
+            <div>
+                <h1 style="font-size: 22px; font-weight: 800; color: var(--dark); margin: 0;">COLLEGE HOSTEL ACCOMMODATION</h1>
+                <p style="font-size: 13px; color: var(--text-secondary); margin: 2px 0 0;">Official Fee Payment Acknowledgment & Receipt</p>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <span class="badge badge-paid" style="font-size: 13px; padding: 6px 12px;">✅ PAYMENT VERIFIED</span>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;" th:text="'Generated: ' + ${#temporals.format(transaction.createdAt, 'dd-MMM-yyyy HH:mm')}">Date</div>
+        </div>
+    </div>
+
+    <!-- Receipt Metadata Banner -->
+    <div style="background: var(--bg-main); padding: 16px 20px; border-radius: var(--radius-md); display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+        <div>
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Receipt Number</div>
+            <div style="font-size: 15px; font-weight: 700; color: var(--primary);" th:text="${transaction.receiptNumber}">REC-1001</div>
+        </div>
+        <div>
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Payment Date</div>
+            <div style="font-size: 15px; font-weight: 600;" th:text="${transaction.paymentDate}">2026-10-20</div>
+        </div>
+        <div>
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Transaction Ref (UTR)</div>
+            <div style="font-size: 14px; font-weight: 600; font-family: monospace;" th:text="${transaction.transactionReference}">UTR-12345</div>
+        </div>
+    </div>
+
+    <!-- Student & Hostel Breakdown -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <div>
+            <h3 style="font-size: 13px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Student Details</h3>
+            <div style="font-size: 16px; font-weight: 700;" th:text="${student.fullName}">Aarav Sharma</div>
+            <div style="font-size: 13px; color: var(--text-secondary);" th:text="'Register No: ' + ${student.registerNumber}">2024CS101</div>
+            <div style="font-size: 13px; color: var(--text-secondary);" th:text="'Department: ' + ${student.department}">Computer Science</div>
+            <div style="font-size: 13px; color: var(--text-secondary);" th:text="'Email: ' + ${student.email}">student@college.edu</div>
+        </div>
+
+        <div>
+            <h3 style="font-size: 13px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Hostel Allocation</h3>
+            <div style="font-size: 16px; font-weight: 700;" th:text="${fee.hostelName}">Kaveri Boys Hostel</div>
+            <div style="font-size: 13px; color: var(--text-secondary);" th:text="'Room Number: ' + ${fee.roomNumber}">Room A-101</div>
+            <div style="font-size: 13px; color: var(--text-secondary);" th:text="'Fee Category: ' + ${fee.feeType.displayName}">Monthly Fee</div>
+            <div style="font-size: 13px; color: var(--text-secondary);" th:text="'Due Date: ' + ${fee.dueDate}">2026-10-25</div>
+        </div>
+    </div>
+
+    <!-- Payment Breakdown Table -->
+    <table class="table" style="margin-bottom: 24px;">
+        <thead>
+        <tr style="background: var(--bg-main);">
+            <th>Description</th>
+            <th>Payment Method</th>
+            <th class="text-right" style="text-align: right;">Amount</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>
+                <div style="font-weight: 600;" th:text="${fee.feeType.displayName} + ' Payment'">Monthly Fee Payment</div>
+                <div style="font-size: 12px; color: var(--text-muted);" th:text="${transaction.notes != null ? transaction.notes : 'Hostel accommodation installment'}">Notes</div>
+            </td>
+            <td th:text="${transaction.paymentMethod}">UPI</td>
+            <td style="text-align: right; font-weight: 700; font-size: 16px;"
+                th:text="'₹' + ${#numbers.formatDecimal(transaction.amount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</td>
+        </tr>
+        </tbody>
+        <tfoot>
+        <tr style="border-top: 2px solid var(--border-color);">
+            <th colspan="2" style="text-align: right; font-size: 14px;">Amount Paid in this Transaction:</th>
+            <th style="text-align: right; font-size: 17px; color: var(--success); font-weight: 800;"
+                th:text="'₹' + ${#numbers.formatDecimal(transaction.amount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</th>
+        </tr>
+        <tr>
+            <th colspan="2" style="text-align: right; font-size: 14px; color: var(--text-secondary);">Total Fee Obligation:</th>
+            <td style="text-align: right; font-size: 14px; font-weight: 600;"
+                th:text="'₹' + ${#numbers.formatDecimal(fee.totalAmount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</td>
+        </tr>
+        <tr>
+            <th colspan="2" style="text-align: right; font-size: 14px; color: var(--text-secondary);">Cumulative Paid to Date:</th>
+            <td style="text-align: right; font-size: 14px; font-weight: 600; color: var(--success);"
+                th:text="'₹' + ${#numbers.formatDecimal(fee.paidAmount, 1, 'COMMA', 2, 'POINT')}">₹6,500.00</td>
+        </tr>
+        <tr>
+            <th colspan="2" style="text-align: right; font-size: 15px;">Remaining Outstanding Balance:</th>
+            <td style="text-align: right; font-size: 16px; font-weight: 800;"
+                th:classappend="${fee.remainingBalance > 0} ? 'text-danger' : 'text-success'"
+                th:text="'₹' + ${#numbers.formatDecimal(fee.remainingBalance, 1, 'COMMA', 2, 'POINT')}">₹0.00</td>
+        </tr>
+        </tfoot>
+    </table>
+
+    <!-- Footer Signoff -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; padding-top: 20px; border-top: 1px dashed var(--border-color);">
+        <div style="font-size: 12px; color: var(--text-muted); max-width: 380px;">
+            * This is a computer-generated official hostel fee receipt validated by the Student Accommodation Management System. No physical signature is required.
+        </div>
+        <div style="text-align: center;">
+            <div style="font-weight: 600; font-size: 13px;" th:text="${transaction.recordedBy}">Hostel Administrator</div>
+            <div style="font-size: 11px; color: var(--text-muted);">Authorized Cashier / Warden</div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -20,9 +20,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     boolean existsByStudentIdAndStatus(Long studentId, String status);
 
     /**
-     * HQL QUERY 2 (Assignment Requirement):
-     * Demonstrates Hibernate Query Language (HQL) using @Query.
-     * Finds all ACTIVE bookings for a given student.
+     * Finds all ACTIVE bookings for a given student via HQL.
      * References the entity name 'Booking' and navigated association 'b.student.id'.
      */
     @Query("SELECT b FROM Booking b WHERE b.student.id = :studentId AND b.status = 'ACTIVE'")

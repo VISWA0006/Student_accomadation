@@ -42,32 +42,29 @@ c:/Student_accomadation/
 │       │   │   │   ├── StudentController.java
 │       │   │   │   ├── RoomController.java
 │       │   │   │   ├── BookingController.java
-│       │   │   │   ├── ApiInfoController.java
+│       │   │   │   ├── HostelFeeController.java
+│       │   │   │   ├── StudentPortalController.java
+│       │   │   │   ├── NotificationCenterController.java
 │       │   │   │   └── api/ (StudentRestController, RoomRestController, BookingRestController)
-│       │   │   ├── dto/
-│       │   │   ├── entity/ (Student, Room, Booking, Person, StudentPerson)
+│       │   │   ├── dto/ (BookingRequestDTO, HostelFeeRequestDTO, RecordPaymentDTO, FeeStatsDTO, FeeFilterDTO, NotificationPayload)
+│       │   │   ├── entity/ (Student, Room, Booking, HostelFee, PaymentTransaction, InAppNotification, FeeType, PaymentStatus, NotificationCategory, Person, StudentPerson)
 │       │   │   ├── exception/ (GlobalExceptionHandler, Custom Exceptions)
-│       │   │   ├── repository/ (StudentRepository, RoomRepository, BookingRepository)
-│       │   │   └── service/ (StudentService, RoomService, BookingService, NotificationClientService)
+│       │   │   ├── repository/ (StudentRepository, RoomRepository, BookingRepository, HostelFeeRepository, PaymentTransactionRepository, InAppNotificationRepository)
+│       │   │   └── service/ (StudentService, RoomService, BookingService, HostelFeeService, InAppNotificationService, FeeReminderSchedulerService, NotificationClientService)
 │       │   └── resources/
 │       │       ├── application.properties
 │       │       ├── application-h2.properties
 │       │       ├── static/ (css/style.css, js/main.js)
-│       │       └── templates/ (dashboard.html, students/, rooms/, bookings/, api-info.html)
+│       │       └── templates/ (dashboard.html, students/, rooms/, bookings/, fees/, student/, notifications/)
 │       └── test/ (Unit and REST Integration tests)
-├── notification-service/                     # Independent Microservice (Port 8081)
-│   ├── pom.xml
-│   └── src/
-│       └── main/java/com/notification/
-│           ├── NotificationApplication.java
-│           ├── controller/NotificationController.java
-│           ├── dto/NotificationRequestDTO.java
-│           └── service/NotificationService.java
-└── docs/                                     # College Documentation & Viva Preparation
-    ├── architecture.md                       # Architecture diagram and layer breakdown
-    ├── hibernate-concepts.md                 # SessionFactory, Session, EntityManager, HQL, Inheritance
-    ├── rest-api-guide.md                     # REST API reference, request/response JSON, Postman guide
-    └── viva-questions.md                     # Viva questions & answers
+└── notification-service/                     # Independent Microservice (Port 8081)
+    ├── pom.xml
+    └── src/
+        └── main/java/com/notification/
+            ├── NotificationApplication.java
+            ├── controller/NotificationController.java
+            ├── dto/NotificationRequestDTO.java
+            └── service/NotificationService.java
 ```
 
 ---
@@ -163,8 +160,11 @@ mvn spring-boot:run
 
 ### Step 3: Open in Browser
 Open your browser and navigate to:
-* **Web Dashboard:** [http://localhost:8080](http://localhost:8080)
-* **REST API Guide:** [http://localhost:8080/api-info](http://localhost:8080/api-info)
+* **Web Dashboard:** [http://localhost:8080/dashboard](http://localhost:8080/dashboard)
+* **Hostel Fee Management:** [http://localhost:8080/fees](http://localhost:8080/fees)
+* **Overdue Fee Alerts Dashboard:** [http://localhost:8080/fees/overdue](http://localhost:8080/fees/overdue)
+* **Student Fee Portal:** [http://localhost:8080/student/fees](http://localhost:8080/student/fees)
+* **Notification & Alert Center:** [http://localhost:8080/notifications](http://localhost:8080/notifications)
 
 ---
 
@@ -223,9 +223,3 @@ git branch -M main
 # 5. Push to GitHub
 git push -u origin main
 ```
-
----
-
-## 11. Viva & Exam Preparation
-Refer to the complete technical question-and-answer guide in:
-📄 [docs/viva-questions.md](docs/viva-questions.md)
