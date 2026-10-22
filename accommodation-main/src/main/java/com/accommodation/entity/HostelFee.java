@@ -2,8 +2,11 @@ package com.accommodation.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -42,16 +45,17 @@ public class HostelFee {
 
     @NotNull(message = "Total fee amount is required")
     @DecimalMin(value = "0.01", message = "Fee amount must be greater than zero")
-    @Column(name = "total_amount", nullable = false)
-    private Double totalAmount;
+    @Digits(integer = 10, fraction = 2, message = "Fee amount must have at most two decimal places")
+    @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal totalAmount;
 
     @NotNull
-    @Column(name = "paid_amount", nullable = false)
-    private Double paidAmount = 0.0;
+    @Column(name = "paid_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal paidAmount = BigDecimal.ZERO;
 
     @NotNull
-    @Column(name = "remaining_balance", nullable = false)
-    private Double remainingBalance;
+    @Column(name = "remaining_balance", nullable = false, precision = 12, scale = 2)
+    private BigDecimal remainingBalance;
 
     @NotNull(message = "Payment due date is required")
     @Column(name = "due_date", nullable = false)
@@ -89,13 +93,18 @@ public class HostelFee {
 
     public HostelFee(Student student, String hostelName, String roomNumber, FeeType feeType,
                      Double totalAmount, LocalDate dueDate) {
+        this(student, hostelName, roomNumber, feeType, BigDecimal.valueOf(totalAmount), dueDate);
+    }
+
+    public HostelFee(Student student, String hostelName, String roomNumber, FeeType feeType,
+                     BigDecimal totalAmount, LocalDate dueDate) {
         this.student = student;
         this.hostelName = hostelName;
         this.roomNumber = roomNumber;
         this.feeType = feeType;
-        this.totalAmount = totalAmount;
-        this.paidAmount = 0.0;
-        this.remainingBalance = totalAmount;
+        this.totalAmount = totalAmount.setScale(2, RoundingMode.HALF_UP);
+        this.paidAmount = BigDecimal.ZERO.setScale(2);
+        this.remainingBalance = this.totalAmount;
         this.dueDate = dueDate;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -116,20 +125,22 @@ public class HostelFee {
             currentDate = LocalDate.now();
         }
         if (this.totalAmount == null) {
-            this.totalAmount = 0.0;
+            this.totalAmount = BigDecimal.ZERO;
         }
         if (this.paidAmount == null) {
-            this.paidAmount = 0.0;
+            this.paidAmount = BigDecimal.ZERO;
         }
 
         // Remaining balance calculation rounded to 2 decimal places
-        double balance = Math.round((this.totalAmount - this.paidAmount) * 100.0) / 100.0;
-        if (balance < 0.001) {
-            balance = 0.0;
+        this.totalAmount = this.totalAmount.setScale(2, RoundingMode.HALF_UP);
+        this.paidAmount = this.paidAmount.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal balance = this.totalAmount.subtract(this.paidAmount).setScale(2, RoundingMode.HALF_UP);
+        if (balance.signum() < 0 || balance.compareTo(new BigDecimal("0.01")) < 0) {
+            balance = BigDecimal.ZERO.setScale(2);
         }
         this.remainingBalance = balance;
 
-        if (this.remainingBalance <= 0.0) {
+        if (this.remainingBalance.signum() <= 0) {
             this.status = PaymentStatus.PAID;
             return;
         }
@@ -141,7 +152,7 @@ public class HostelFee {
         } else if (!this.dueDate.isAfter(currentDate.plusDays(7))) {
             // Due date is approaching (within next 7 days or today) and balance remains unpaid
             this.status = PaymentStatus.UPCOMING;
-        } else if (this.paidAmount > 0.0) {
+        } else if (this.paidAmount.signum() > 0) {
             // Paid partially, but due date is not yet within 7 days
             this.status = PaymentStatus.PARTIALLY_PAID;
         } else {
@@ -156,7 +167,8 @@ public class HostelFee {
      */
     public long getDaysOverdue(LocalDate currentDate) {
         if (currentDate == null) currentDate = LocalDate.now();
-        if (this.dueDate != null && this.dueDate.isBefore(currentDate) && this.remainingBalance != null && this.remainingBalance > 0.0) {
+        if (this.dueDate != null && this.dueDate.isBefore(currentDate)
+                && this.remainingBalance != null && this.remainingBalance.signum() > 0) {
             return ChronoUnit.DAYS.between(this.dueDate, currentDate);
         }
         return 0;
@@ -202,28 +214,40 @@ public class HostelFee {
         this.feeType = feeType;
     }
 
-    public Double getTotalAmount() {
+    public BigDecimal getTotalAmount() {
         return totalAmount;
     }
 
-    public void setTotalAmount(Double totalAmount) {
+    public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
     }
 
-    public Double getPaidAmount() {
+    public void setTotalAmount(Double totalAmount) {
+        this.totalAmount = totalAmount != null ? BigDecimal.valueOf(totalAmount) : null;
+    }
+
+    public BigDecimal getPaidAmount() {
         return paidAmount;
     }
 
-    public void setPaidAmount(Double paidAmount) {
+    public void setPaidAmount(BigDecimal paidAmount) {
         this.paidAmount = paidAmount;
     }
 
-    public Double getRemainingBalance() {
+    public void setPaidAmount(Double paidAmount) {
+        this.paidAmount = paidAmount != null ? BigDecimal.valueOf(paidAmount) : null;
+    }
+
+    public BigDecimal getRemainingBalance() {
         return remainingBalance;
     }
 
-    public void setRemainingBalance(Double remainingBalance) {
+    public void setRemainingBalance(BigDecimal remainingBalance) {
         this.remainingBalance = remainingBalance;
+    }
+
+    public void setRemainingBalance(Double remainingBalance) {
+        this.remainingBalance = remainingBalance != null ? BigDecimal.valueOf(remainingBalance) : null;
     }
 
     public LocalDate getDueDate() {

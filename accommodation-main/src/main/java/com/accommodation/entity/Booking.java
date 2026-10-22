@@ -17,6 +17,9 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "active_student_id", unique = true)
+    private Long activeStudentId;
+
     @NotNull(message = "Student is required")
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "student_id", nullable = false)
@@ -82,6 +85,13 @@ public class Booking {
 
     public void setStatus(String status) {
         this.status = status;
+        synchronizeActiveStudentId();
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void synchronizeActiveStudentId() {
+        activeStudentId = "ACTIVE".equalsIgnoreCase(status) && student != null ? student.getId() : null;
     }
 
     @Override

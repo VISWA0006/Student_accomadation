@@ -13,8 +13,17 @@ import com.accommodation.service.FeeReminderSchedulerService;
 import com.accommodation.service.HostelFeeService;
 import com.accommodation.service.RoomService;
 import com.accommodation.service.StudentService;
+import com.accommodation.service.UserAccountService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -31,30 +40,70 @@ public class HostelFeeController {
     private final StudentService studentService;
     private final RoomService roomService;
     private final FeeReminderSchedulerService reminderSchedulerService;
+    private final UserAccountService userAccountService;
+    private static final int FEE_PAGE_SIZE = 25;
 
     public HostelFeeController(HostelFeeService feeService,
                                StudentService studentService,
                                RoomService roomService,
-                               FeeReminderSchedulerService reminderSchedulerService) {
+                               FeeReminderSchedulerService reminderSchedulerService,
+                               UserAccountService userAccountService) {
         this.feeService = feeService;
         this.studentService = studentService;
         this.roomService = roomService;
         this.reminderSchedulerService = reminderSchedulerService;
+        this.userAccountService = userAccountService;
     }
 
     /**
      * Admin / Warden Hostel Fee Management List with Multi-Criteria Filtering.
      */
     @GetMapping
-    public String listFees(@ModelAttribute("filter") FeeFilterDTO filter, Model model) {
-        List<HostelFee> fees = feeService.filterFees(filter);
+    public String listFees(@ModelAttribute("filter") FeeFilterDTO filter,
+                           @RequestParam(defaultValue = "0") int page,
+                           Model model) {
+        Page<HostelFee> feePage = feeService.getFeePage(filter, PageRequest.of(Math.max(0, page), FEE_PAGE_SIZE));
         FeeStatsDTO stats = feeService.getFeeStats();
 
-        model.addAttribute("fees", fees);
+        model.addAttribute("fees", feePage.getContent());
+        model.addAttribute("feePage", feePage);
+        model.addAttribute("currentPage", feePage.getNumber());
+        model.addAttribute("totalPages", feePage.getTotalPages());
         model.addAttribute("stats", stats);
         model.addAttribute("statuses", PaymentStatus.values());
         model.addAttribute("filter", filter);
         return "fees/list";
+    }
+
+    @GetMapping(value = "/export.csv", produces = "text/csv")
+    public ResponseEntity<String> exportFeesCsv() {
+        StringBuilder csv = new StringBuilder(
+                "Fee ID,Student Register Number,Student Name,Room,Fee Type,Total Amount,Paid Amount,Balance,Status,Due Date\r\n");
+        for (HostelFee fee : feeService.getAllFees()) {
+            appendCsvRow(csv, fee.getId(), fee.getStudent().getRegisterNumber(),
+                    fee.getStudent().getFullName(), fee.getRoomNumber(),
+                    fee.getFeeType().getDisplayName(), fee.getTotalAmount(),
+                    fee.getPaidAmount(), fee.getRemainingBalance(), fee.getStatus(),
+                    fee.getDueDate());
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"hostel-fees.csv\"")
+                .contentType(new MediaType("text", "csv"))
+                .body(csv.toString());
+    }
+
+    private void appendCsvRow(StringBuilder csv, Object... values) {
+        for (int i = 0; i < values.length; i++) {
+            if (i > 0) {
+                csv.append(',');
+            }
+            String value = values[i] == null ? "" : values[i].toString();
+            if (!value.isEmpty() && "=+-@\t\r\n".indexOf(value.charAt(0)) >= 0) {
+                value = "'" + value;
+            }
+            csv.append('"').append(value.replace("\"", "\"\"")).append('"');
+        }
+        csv.append("\r\n");
     }
 
     /**
@@ -176,8 +225,14 @@ public class HostelFeeController {
      * Printable Official Payment Receipt.
      */
     @GetMapping("/receipts/{receiptNumber}")
-    public String viewReceipt(@PathVariable("receiptNumber") String receiptNumber, Model model) {
+    public String viewReceipt(@PathVariable("receiptNumber") String receiptNumber, Model model,
+                              @AuthenticationPrincipal UserDetails principal) {
         PaymentTransaction transaction = feeService.getTransactionByReceipt(receiptNumber);
+        if (userAccountService.isStudentAccount(principal.getUsername())
+                && !transaction.getStudent().getId().equals(
+                userAccountService.getStudentId(principal.getUsername()))) {
+            throw new AccessDeniedException("You may only view your own payment receipts.");
+        }
         model.addAttribute("transaction", transaction);
         model.addAttribute("fee", transaction.getHostelFee());
         model.addAttribute("student", transaction.getStudent());

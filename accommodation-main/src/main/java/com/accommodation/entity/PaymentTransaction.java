@@ -2,8 +2,11 @@ package com.accommodation.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -35,8 +38,9 @@ public class PaymentTransaction {
 
     @NotNull(message = "Payment amount is required")
     @DecimalMin(value = "0.01", message = "Payment amount must be greater than zero")
-    @Column(name = "amount", nullable = false)
-    private Double amount;
+    @Digits(integer = 10, fraction = 2, message = "Payment amount must have at most two decimal places")
+    @Column(name = "amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal amount;
 
     @NotNull(message = "Payment date is required")
     @Column(name = "payment_date", nullable = false)
@@ -70,9 +74,17 @@ public class PaymentTransaction {
                               LocalDate paymentDate, String paymentMethod,
                               String transactionReference, String receiptNumber,
                               String recordedBy, String notes) {
+        this(hostelFee, student, BigDecimal.valueOf(amount), paymentDate, paymentMethod,
+                transactionReference, receiptNumber, recordedBy, notes);
+    }
+
+    public PaymentTransaction(HostelFee hostelFee, Student student, BigDecimal amount,
+                              LocalDate paymentDate, String paymentMethod,
+                              String transactionReference, String receiptNumber,
+                              String recordedBy, String notes) {
         this.hostelFee = hostelFee;
         this.student = student;
-        this.amount = amount;
+        this.amount = amount.setScale(2, RoundingMode.HALF_UP);
         this.paymentDate = paymentDate;
         this.paymentMethod = paymentMethod;
         this.transactionReference = transactionReference;
@@ -106,12 +118,16 @@ public class PaymentTransaction {
         this.student = student;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount.setScale(2, RoundingMode.HALF_UP);
+    }
+
     public void setAmount(Double amount) {
-        this.amount = amount;
+        this.amount = amount != null ? BigDecimal.valueOf(amount).setScale(2, RoundingMode.HALF_UP) : null;
     }
 
     public LocalDate getPaymentDate() {

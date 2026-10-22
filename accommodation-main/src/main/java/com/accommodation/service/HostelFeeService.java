@@ -3,7 +3,6 @@ package com.accommodation.service;
 import com.accommodation.dto.FeeFilterDTO;
 import com.accommodation.dto.FeeStatsDTO;
 import com.accommodation.dto.HostelFeeRequestDTO;
-import com.accommodation.dto.NotificationPayload;
 import com.accommodation.dto.RecordPaymentDTO;
 import com.accommodation.entity.*;
 import com.accommodation.exception.DuplicateResourceException;
@@ -13,9 +12,13 @@ import com.accommodation.repository.PaymentTransactionRepository;
 import com.accommodation.repository.StudentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -31,18 +34,15 @@ public class HostelFeeService {
     private final PaymentTransactionRepository transactionRepository;
     private final StudentRepository studentRepository;
     private final InAppNotificationService inAppNotificationService;
-    private final NotificationClientService notificationClientService;
 
     public HostelFeeService(HostelFeeRepository feeRepository,
                             PaymentTransactionRepository transactionRepository,
                             StudentRepository studentRepository,
-                            InAppNotificationService inAppNotificationService,
-                            NotificationClientService notificationClientService) {
+                            InAppNotificationService inAppNotificationService) {
         this.feeRepository = feeRepository;
         this.transactionRepository = transactionRepository;
         this.studentRepository = studentRepository;
         this.inAppNotificationService = inAppNotificationService;
-        this.notificationClientService = notificationClientService;
     }
 
     /**
@@ -50,6 +50,7 @@ public class HostelFeeService {
      */
     @Transactional
     public HostelFee createFee(HostelFeeRequestDTO request) {
+        BigDecimal totalAmount = currencyAmount(request.getTotalAmount(), "Fee amount");
         Student student = studentRepository.findById(request.getStudentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found with ID: " + request.getStudentId()));
 
@@ -58,7 +59,7 @@ public class HostelFeeService {
                 request.getHostelName().trim(),
                 request.getRoomNumber().trim(),
                 request.getFeeType(),
-                request.getTotalAmount(),
+                totalAmount,
                 request.getDueDate()
         );
 
@@ -77,20 +78,6 @@ public class HostelFeeService {
                 "/student/fees",
                 dedupKey
         );
-
-        // Notify external microservice
-        notificationClientService.sendNotification(new NotificationPayload(
-                student.getFullName(),
-                student.getEmail(),
-                saved.getRoomNumber(),
-                saved.getStatus().name(),
-                "FEE_ASSIGNED",
-                saved.getFeeType().getDisplayName(),
-                saved.getTotalAmount(),
-                saved.getRemainingBalance(),
-                null,
-                "Hostel fee of ₹" + saved.getTotalAmount() + " assigned to " + student.getFullName()
-        ));
 
         log.info("Hostel fee #{} created for student {} (Amount: ₹{}, Due: {})",
                 saved.getId(), student.getFullName(), saved.getTotalAmount(), saved.getDueDate());
@@ -134,15 +121,23 @@ public class HostelFeeService {
 
         // Apply overdue days duration filter if specified
         if (filter.getOverdueDays() != null && !filter.getOverdueDays().equalsIgnoreCase("ALL")) {
-            try {
-                long minDays = Long.parseLong(filter.getOverdueDays());
-                fees = fees.stream()
-                        .filter(f -> f.getStatus() == PaymentStatus.OVERDUE && f.getDaysOverdue(today) >= minDays)
-                        .collect(Collectors.toList());
-            } catch (NumberFormatException ignored) {
-            }
+            long minDays = parseOverdueDays(filter.getOverdueDays());
+            fees = fees.stream()
+                    .filter(f -> f.getStatus() == PaymentStatus.OVERDUE && f.getDaysOverdue(today) >= minDays)
+                    .collect(Collectors.toList());
         }
 
+        return fees;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<HostelFee> getFeePage(FeeFilterDTO filter, Pageable pageable) {
+        LocalDate today = LocalDate.now();
+        long minDays = parseOverdueDays(filter.getOverdueDays());
+        Page<HostelFee> fees = feeRepository.filterFeesPage(
+                filter.getHostelName(), filter.getRoomNumber(), filter.getSearch(), filter.getStatus(),
+                minDays, today.minusDays(minDays), pageable);
+        fees.forEach(fee -> fee.recalculateStatus(today));
         return fees;
     }
 
@@ -167,33 +162,29 @@ public class HostelFeeService {
     }
 
     public FeeStatsDTO getFeeStats() {
-        // Refresh statuses across fees to ensure accurate live counts
         LocalDate today = LocalDate.now();
-        List<HostelFee> allFees = feeRepository.findAll();
-        allFees.forEach(f -> f.recalculateStatus(today));
+        LocalDate upcomingCutoff = today.plusDays(7);
+        return new FeeStatsDTO(feeRepository.sumTotalAmounts().doubleValue(),
+                feeRepository.sumPaidAmounts().doubleValue(),
+                feeRepository.sumRemainingBalances().doubleValue(),
+                feeRepository.countOverdueStudents(today),
+                feeRepository.countPartiallyPaidStudents(upcomingCutoff),
+                feeRepository.countUpcomingPaymentsBetween(today, upcomingCutoff));
+    }
 
-        Double totalDue = allFees.stream().mapToDouble(HostelFee::getTotalAmount).sum();
-        Double totalPaid = allFees.stream().mapToDouble(HostelFee::getPaidAmount).sum();
-        Double totalBalance = allFees.stream().mapToDouble(HostelFee::getRemainingBalance).sum();
-
-        long overdueStudentsCount = allFees.stream()
-                .filter(f -> f.getStatus() == PaymentStatus.OVERDUE)
-                .map(f -> f.getStudent().getId())
-                .distinct()
-                .count();
-
-        long partiallyPaidStudentsCount = allFees.stream()
-                .filter(f -> f.getStatus() == PaymentStatus.PARTIALLY_PAID)
-                .map(f -> f.getStudent().getId())
-                .distinct()
-                .count();
-
-        long upcomingPaymentsCount = allFees.stream()
-                .filter(f -> f.getStatus() == PaymentStatus.UPCOMING)
-                .count();
-
-        return new FeeStatsDTO(totalDue, totalPaid, totalBalance,
-                overdueStudentsCount, partiallyPaidStudentsCount, upcomingPaymentsCount);
+    private long parseOverdueDays(String overdueDays) {
+        if (overdueDays == null || overdueDays.isBlank() || "ALL".equalsIgnoreCase(overdueDays)) {
+            return 0;
+        }
+        try {
+            long days = Long.parseLong(overdueDays);
+            if (days < 0) {
+                throw new IllegalArgumentException("Overdue days cannot be negative.");
+            }
+            return days;
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Overdue days must be ALL or a non-negative number.", ex);
+        }
     }
 
     /**
@@ -203,28 +194,29 @@ public class HostelFeeService {
      * - Duplicate transaction references are rejected.
      * - Automatically updates remaining balance and payment status.
      * - Fully paid fees are never marked overdue.
-     * - Dispatches in-app notifications and microservice alerts.
+     * - Persists in-app notifications for the student and administrator.
      */
     @Transactional
     public PaymentTransaction recordPayment(Long feeId, RecordPaymentDTO paymentDTO) {
-        HostelFee fee = feeRepository.findById(feeId)
+        HostelFee fee = feeRepository.findByIdForUpdate(feeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hostel Fee not found with ID: " + feeId));
 
         LocalDate today = LocalDate.now();
         fee.recalculateStatus(today);
 
         // Validation: Cannot pay already fully paid fee
-        if (fee.getStatus() == PaymentStatus.PAID || fee.getRemainingBalance() <= 0.0) {
+        if (fee.getStatus() == PaymentStatus.PAID || fee.getRemainingBalance().signum() <= 0) {
             throw new IllegalArgumentException("This hostel fee has already been PAID in full! Remaining balance is ₹0.00.");
         }
 
         // Validation: Payment amount must be > 0
-        if (paymentDTO.getAmount() == null || paymentDTO.getAmount() <= 0.0) {
+        if (paymentDTO.getAmount() == null || paymentDTO.getAmount().signum() <= 0) {
             throw new IllegalArgumentException("Payment amount must be greater than ₹0.00.");
         }
 
         // Validation: Payment amount must not exceed remaining balance
-        if (paymentDTO.getAmount() > (fee.getRemainingBalance() + 0.001)) {
+        BigDecimal paymentAmount = currencyAmount(paymentDTO.getAmount(), "Payment amount");
+        if (paymentAmount.compareTo(fee.getRemainingBalance()) > 0) {
             throw new IllegalArgumentException("Payment amount (₹" + paymentDTO.getAmount() +
                     ") exceeds outstanding balance (₹" + fee.getRemainingBalance() + ")! Overpayments are not supported.");
         }
@@ -243,7 +235,7 @@ public class HostelFeeService {
                 UUID.randomUUID().toString().substring(0, 6).toUpperCase();
 
         // Update fee financials
-        double newPaidAmount = Math.round((fee.getPaidAmount() + paymentDTO.getAmount()) * 100.0) / 100.0;
+        BigDecimal newPaidAmount = fee.getPaidAmount().add(paymentAmount);
         fee.setPaidAmount(newPaidAmount);
         fee.setPaymentDate(paymentDTO.getPaymentDate() != null ? paymentDTO.getPaymentDate() : today);
         fee.setPaymentMethod(paymentDTO.getPaymentMethod());
@@ -257,7 +249,7 @@ public class HostelFeeService {
         PaymentTransaction transaction = new PaymentTransaction(
                 updatedFee,
                 fee.getStudent(),
-                paymentDTO.getAmount(),
+                paymentAmount,
                 paymentDTO.getPaymentDate() != null ? paymentDTO.getPaymentDate() : today,
                 paymentDTO.getPaymentMethod(),
                 txnRef,
@@ -267,9 +259,8 @@ public class HostelFeeService {
         );
         PaymentTransaction savedTransaction = transactionRepository.save(transaction);
 
-        // Automated In-App & External Notifications
+        // Automated in-app notifications
         boolean isFullyPaid = updatedFee.getStatus() == PaymentStatus.PAID;
-        String actionType = isFullyPaid ? "PAYMENT_SUCCESS" : "PARTIAL_PAYMENT";
         NotificationCategory notifCat = isFullyPaid ? NotificationCategory.PAYMENT_CONFIRMATION : NotificationCategory.PARTIAL_PAYMENT;
 
         String studentTitle = isFullyPaid ? "Payment Received - Fully Paid" : "Partial Payment Recorded";
@@ -307,24 +298,21 @@ public class HostelFeeService {
                 "ADMIN_PAYMENT-" + savedTransaction.getId()
         );
 
-        // External notification service event
-        notificationClientService.sendNotification(new NotificationPayload(
-                fee.getStudent().getFullName(),
-                fee.getStudent().getEmail(),
-                fee.getRoomNumber(),
-                updatedFee.getStatus().name(),
-                actionType,
-                fee.getFeeType().getDisplayName(),
-                paymentDTO.getAmount(),
-                updatedFee.getRemainingBalance(),
-                receiptNumber,
-                studentMsg
-        ));
-
         log.info("Payment of ₹{} processed for fee #{} (Receipt: {}, Status: {})",
                 paymentDTO.getAmount(), fee.getId(), receiptNumber, updatedFee.getStatus());
 
         return savedTransaction;
+    }
+
+    private BigDecimal currencyAmount(BigDecimal amount, String label) {
+        if (amount == null) {
+            throw new IllegalArgumentException(label + " is required.");
+        }
+        try {
+            return amount.setScale(2, RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException ex) {
+            throw new IllegalArgumentException(label + " must have at most two decimal places.", ex);
+        }
     }
 
     public List<PaymentTransaction> getTransactionsForFee(Long feeId) {

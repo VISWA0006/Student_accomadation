@@ -50,16 +50,18 @@ public class InAppNotificationService {
 
     public List<InAppNotification> getNotificationsForStudent(Long studentId, NotificationCategory category) {
         if (category != null) {
-            return notificationRepository.findByStudentIdAndCategoryOrderByCreatedAtDesc(studentId, category);
+            return notificationRepository.findByStudentIdAndCategoryAndIsReadFalseOrderByCreatedAtDesc(
+                    studentId, category);
         }
-        return notificationRepository.findByStudentIdOrderByCreatedAtDesc(studentId);
+        return notificationRepository.findByStudentIdAndIsReadFalseOrderByCreatedAtDesc(studentId);
     }
 
     public List<InAppNotification> getNotificationsForAdmin(NotificationCategory category) {
         if (category != null) {
-            return notificationRepository.findByRecipientRoleAndCategoryOrderByCreatedAtDesc("ADMIN", category);
+            return notificationRepository.findByRecipientRoleAndCategoryAndIsReadFalseOrderByCreatedAtDesc(
+                    "ADMIN", category);
         }
-        return notificationRepository.findByRecipientRoleOrderByCreatedAtDesc("ADMIN");
+        return notificationRepository.findByRecipientRoleAndIsReadFalseOrderByCreatedAtDesc("ADMIN");
     }
 
     public long getUnreadCountForStudent(Long studentId) {
@@ -75,6 +77,22 @@ public class InAppNotificationService {
         return notificationRepository.findById(notificationId).map(n -> {
             n.setRead(true);
             notificationRepository.save(n);
+            return true;
+        }).orElse(false);
+    }
+
+    @Transactional
+    public boolean markAsReadForStudent(Long notificationId, Long studentId) {
+        return notificationRepository.findByIdAndStudentId(notificationId, studentId).map(notification -> {
+            notification.setRead(true);
+            return true;
+        }).orElse(false);
+    }
+
+    @Transactional
+    public boolean markAsReadForAdmin(Long notificationId) {
+        return notificationRepository.findByIdAndRecipientRole(notificationId, "ADMIN").map(notification -> {
+            notification.setRead(true);
             return true;
         }).orElse(false);
     }

@@ -2,11 +2,13 @@ package com.accommodation.dto;
 
 import com.accommodation.entity.FeeType;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class HostelFeeRequestDTO {
 
@@ -24,7 +26,8 @@ public class HostelFeeRequestDTO {
 
     @NotNull(message = "Fee amount is required")
     @DecimalMin(value = "1.0", message = "Amount must be at least ₹1.00")
-    private Double totalAmount;
+    @Digits(integer = 10, fraction = 2, message = "Amount must have at most two decimal places")
+    private BigDecimal totalAmount;
 
     @NotNull(message = "Payment due date is required")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -66,11 +69,11 @@ public class HostelFeeRequestDTO {
         this.feeType = feeType;
     }
 
-    public Double getTotalAmount() {
+    public BigDecimal getTotalAmount() {
         return totalAmount;
     }
 
-    public void setTotalAmount(Double totalAmount) {
+    public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
     }
 

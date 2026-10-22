@@ -94,6 +94,13 @@
                                           th:text="${b.status}">ACTIVE</span>
                                 </td>
                                 <td>
+                                    <form th:if="${b.status == 'ACTIVE'}" th:action="@{/bookings/{id}/check-in(id=${b.id})}" method="post" style="display:inline;">
+                                        <button type="submit" class="btn btn-secondary btn-sm">Check in</button>
+                                    </form>
+                                    <form th:if="${b.status == 'ACTIVE'}" th:action="@{/bookings/{id}/check-out(id=${b.id})}" method="post" style="display:inline;">
+                                        <input name="note" maxlength="1000" placeholder="Check-out note" aria-label="Check-out note">
+                                        <button type="submit" class="btn btn-secondary btn-sm">Check out</button>
+                                    </form>
                                     <form th:if="${b.status == 'ACTIVE'}" th:action="@{/bookings/{id}/cancel(id=${b.id})}" method="post" style="display:inline;">
                                         <button type="submit" class="btn btn-danger btn-sm"
                                                 onclick="return confirm('Are you sure you want to cancel this booking and free up the bed?')">Cancel Booking</button>

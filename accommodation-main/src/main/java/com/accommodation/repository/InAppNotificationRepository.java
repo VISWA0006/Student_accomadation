@@ -13,19 +13,25 @@ import java.util.List;
 @Repository
 public interface InAppNotificationRepository extends JpaRepository<InAppNotification, Long> {
 
-    List<InAppNotification> findByStudentIdOrderByCreatedAtDesc(Long studentId);
+    List<InAppNotification> findByStudentIdAndIsReadFalseOrderByCreatedAtDesc(Long studentId);
 
-    List<InAppNotification> findByRecipientRoleOrderByCreatedAtDesc(String recipientRole);
+    List<InAppNotification> findByRecipientRoleAndIsReadFalseOrderByCreatedAtDesc(String recipientRole);
 
-    List<InAppNotification> findByStudentIdAndCategoryOrderByCreatedAtDesc(Long studentId, NotificationCategory category);
+    List<InAppNotification> findByStudentIdAndCategoryAndIsReadFalseOrderByCreatedAtDesc(
+            Long studentId, NotificationCategory category);
 
-    List<InAppNotification> findByRecipientRoleAndCategoryOrderByCreatedAtDesc(String recipientRole, NotificationCategory category);
+    List<InAppNotification> findByRecipientRoleAndCategoryAndIsReadFalseOrderByCreatedAtDesc(
+            String recipientRole, NotificationCategory category);
 
     long countByStudentIdAndIsReadFalse(Long studentId);
 
     long countByRecipientRoleAndIsReadFalse(String recipientRole);
 
     boolean existsByDedupKey(String dedupKey);
+
+    java.util.Optional<InAppNotification> findByIdAndStudentId(Long id, Long studentId);
+
+    java.util.Optional<InAppNotification> findByIdAndRecipientRole(Long id, String recipientRole);
 
     @Modifying
     @Query("UPDATE InAppNotification n SET n.isRead = true WHERE n.student.id = :studentId")

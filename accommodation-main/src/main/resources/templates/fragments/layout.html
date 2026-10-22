@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:fragment="header(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${title} + ' - Student Accommodation System'">Student Accommodation System</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%200%20100%20100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
 </head>
@@ -18,60 +19,54 @@
         </div>
     </div>
 
-    <!-- Active Persona Indicator -->
     <div class="persona-indicator" style="padding: 12px 18px; background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.08); font-size: 12px;">
-        <div style="color: var(--text-muted); margin-bottom: 4px;">CURRENT ROLE</div>
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <span style="font-weight: 600; color: #a5b4fc;" 
-                  th:text="${session.currentRole != null ? session.currentRole : 'ADMINISTRATOR'}">ADMINISTRATOR</span>
-            <a th:href="@{/student/fees}" style="color: #38bdf8; text-decoration: none; font-size: 11px;">Switch &rarr;</a>
-        </div>
+        <div style="color: var(--text-muted); margin-bottom: 4px;">SIGNED IN</div>
+        <span sec:authentication="name" style="font-weight: 600; color: #a5b4fc;"></span>
     </div>
 
     <ul class="sidebar-menu">
-        <li class="menu-item" th:classappend="${activeTab == 'dashboard'} ? 'active' : ''">
+        <li sec:authorize="hasRole('ADMIN')" class="menu-item" th:classappend="${activeTab == 'dashboard'} ? 'active' : ''">
             <a th:href="@{/dashboard}">
                 <span class="menu-icon">📊</span>
                 <span>Dashboard</span>
             </a>
         </li>
-        <li class="menu-item" th:classappend="${activeTab == 'students'} ? 'active' : ''">
+        <li sec:authorize="hasRole('ADMIN')" class="menu-item" th:classappend="${activeTab == 'students'} ? 'active' : ''">
             <a th:href="@{/students}">
                 <span class="menu-icon">🎓</span>
                 <span>Students</span>
             </a>
         </li>
-        <li class="menu-item" th:classappend="${activeTab == 'rooms'} ? 'active' : ''">
+        <li sec:authorize="hasRole('ADMIN')" class="menu-item" th:classappend="${activeTab == 'rooms'} ? 'active' : ''">
             <a th:href="@{/rooms}">
                 <span class="menu-icon">🛏️</span>
                 <span>Rooms</span>
             </a>
         </li>
-        <li class="menu-item" th:classappend="${activeTab == 'bookings'} ? 'active' : ''">
+        <li sec:authorize="hasRole('ADMIN')" class="menu-item" th:classappend="${activeTab == 'bookings'} ? 'active' : ''">
             <a th:href="@{/bookings}">
                 <span class="menu-icon">📅</span>
                 <span>Bookings</span>
             </a>
         </li>
-
-        <li class="menu-category" style="padding: 16px 20px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4);">
+        <li sec:authorize="hasRole('ADMIN')" class="menu-category" style="padding: 16px 20px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4);">
             Fee & Alert Modules
         </li>
 
-        <li class="menu-item" th:classappend="${activeTab == 'fees'} ? 'active' : ''">
+        <li sec:authorize="hasRole('ADMIN')" class="menu-item" th:classappend="${activeTab == 'fees'} ? 'active' : ''">
             <a th:href="@{/fees}">
                 <span class="menu-icon">💰</span>
                 <span>Hostel Fees</span>
             </a>
         </li>
-        <li class="menu-item" th:classappend="${activeTab == 'overdue'} ? 'active' : ''">
+        <li sec:authorize="hasRole('ADMIN')" class="menu-item" th:classappend="${activeTab == 'overdue'} ? 'active' : ''">
             <a th:href="@{/fees/overdue}">
                 <span class="menu-icon">🚨</span>
                 <span>Overdue Dashboard</span>
                 <span class="nav-pill nav-pill-danger">Alerts</span>
             </a>
         </li>
-        <li class="menu-item" th:classappend="${activeTab == 'student-portal'} ? 'active' : ''">
+        <li sec:authorize="hasRole('STUDENT')" class="menu-item" th:classappend="${activeTab == 'student-portal'} ? 'active' : ''">
             <a th:href="@{/student/fees}">
                 <span class="menu-icon">👤</span>
                 <span>Student Portal</span>
@@ -100,38 +95,14 @@
         <span id="navNotifBadge" class="bell-badge" style="display: none;">0</span>
     </a>
 
-    <!-- Role Switcher Dropdown -->
     <div class="role-selector-wrapper">
-        <label for="roleSwitchSelect" style="font-size: 12px; color: var(--text-secondary); margin-right: 6px;">Persona:</label>
-        <select id="roleSwitchSelect" class="form-select form-select-sm" onchange="window.location.href=this.value;">
-            <option th:value="@{/student/switch(role='ADMIN', redirect=${#httpServletRequest != null ? #httpServletRequest.requestURI : '/dashboard'})}"
-                    th:selected="${session.currentRole == null or session.currentRole == 'ADMIN' or session.currentRole == 'ADMINISTRATOR'}">
-                👔 Administrator / Warden
-            </option>
-            <option th:value="@{/student/switch(role='STUDENT', studentId=1)}"
-                    th:selected="${session.currentRole == 'STUDENT' and session.currentStudentId == 1}">
-                🎓 Student: Aarav Sharma (Paid)
-            </option>
-            <option th:value="@{/student/switch(role='STUDENT', studentId=2)}"
-                    th:selected="${session.currentRole == 'STUDENT' and session.currentStudentId == 2}">
-                🎓 Student: Priya Nair (Partially Paid)
-            </option>
-            <option th:value="@{/student/switch(role='STUDENT', studentId=3)}"
-                    th:selected="${session.currentRole == 'STUDENT' and session.currentStudentId == 3}">
-                🎓 Student: Rahul Verma (Overdue 🚨)
-            </option>
-            <option th:value="@{/student/switch(role='STUDENT', studentId=4)}"
-                    th:selected="${session.currentRole == 'STUDENT' and session.currentStudentId == 4}">
-                🎓 Student: Sneha Patel (Upcoming ⏳)
-            </option>
-            <option th:value="@{/student/switch(role='STUDENT', studentId=5)}"
-                    th:selected="${session.currentRole == 'STUDENT' and session.currentStudentId == 5}">
-                🎓 Student: Kavya Reddy (Pending)
-            </option>
-        </select>
+        <span sec:authentication="name" style="font-size: 12px; color: var(--text-secondary); margin-right: 8px;"></span>
+        <form th:action="@{/logout}" method="post" style="display: inline;">
+            <button type="submit" class="btn btn-secondary btn-sm">Sign out</button>
+        </form>
     </div>
 
-    <a th:href="@{/fees/new}" class="btn btn-primary btn-sm">+ Assign Fee</a>
+    <a sec:authorize="hasRole('ADMIN')" th:href="@{/fees/new}" class="btn btn-primary btn-sm">+ Assign Fee</a>
 </div>
 
 <div th:fragment="alerts">

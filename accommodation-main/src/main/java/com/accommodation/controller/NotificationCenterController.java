@@ -5,7 +5,8 @@ import com.accommodation.entity.NotificationCategory;
 import com.accommodation.entity.Student;
 import com.accommodation.service.InAppNotificationService;
 import com.accommodation.service.StudentService;
-import jakarta.servlet.http.HttpSession;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,11 +22,14 @@ public class NotificationCenterController {
 
     private final InAppNotificationService notificationService;
     private final StudentService studentService;
+    private final com.accommodation.service.UserAccountService userAccountService;
 
     public NotificationCenterController(InAppNotificationService notificationService,
-                                        StudentService studentService) {
+                                        StudentService studentService,
+                                        com.accommodation.service.UserAccountService userAccountService) {
         this.notificationService = notificationService;
         this.studentService = studentService;
+        this.userAccountService = userAccountService;
     }
 
     /**
@@ -34,11 +38,10 @@ public class NotificationCenterController {
      */
     @GetMapping
     public String showNotificationCenter(@RequestParam(value = "category", required = false) NotificationCategory category,
-                                         HttpSession session,
+                                         @AuthenticationPrincipal UserDetails principal,
                                          Model model) {
-        String currentRole = (String) session.getAttribute("currentRole");
-        Long studentId = (Long) session.getAttribute("currentStudentId");
-        boolean isStudent = "STUDENT".equalsIgnoreCase(currentRole);
+        boolean isStudent = userAccountService.isStudentAccount(principal.getUsername());
+        Long studentId = isStudent ? userAccountService.getStudentId(principal.getUsername()) : null;
 
         List<InAppNotification> notifications;
         long unreadCount;
@@ -68,8 +71,13 @@ public class NotificationCenterController {
      */
     @PostMapping("/api/{id}/read")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> markSingleAsRead(@PathVariable("id") Long id) {
-        boolean updated = notificationService.markAsRead(id);
+    public ResponseEntity<Map<String, Object>> markSingleAsRead(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal UserDetails principal) {
+        boolean updated = userAccountService.isStudentAccount(principal.getUsername())
+                ? notificationService.markAsReadForStudent(
+                        id, userAccountService.getStudentId(principal.getUsername()))
+                : notificationService.markAsReadForAdmin(id);
         Map<String, Object> resp = new HashMap<>();
         resp.put("success", updated);
         resp.put("id", id);
@@ -81,12 +89,12 @@ public class NotificationCenterController {
      */
     @PostMapping("/api/read-all")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> markAllAsRead(HttpSession session) {
-        String currentRole = (String) session.getAttribute("currentRole");
-        Long studentId = (Long) session.getAttribute("currentStudentId");
+    public ResponseEntity<Map<String, Object>> markAllAsRead(
+            @AuthenticationPrincipal UserDetails principal) {
+        boolean isStudent = userAccountService.isStudentAccount(principal.getUsername());
 
-        if ("STUDENT".equalsIgnoreCase(currentRole) && studentId != null) {
-            notificationService.markAllAsReadForStudent(studentId);
+        if (isStudent) {
+            notificationService.markAllAsReadForStudent(userAccountService.getStudentId(principal.getUsername()));
         } else {
             notificationService.markAllAsReadForAdmin();
         }
@@ -101,12 +109,12 @@ public class NotificationCenterController {
      */
     @GetMapping("/api/unread-count")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> getUnreadCount(HttpSession session) {
-        String currentRole = (String) session.getAttribute("currentRole");
-        Long studentId = (Long) session.getAttribute("currentStudentId");
+    public ResponseEntity<Map<String, Object>> getUnreadCount(
+            @AuthenticationPrincipal UserDetails principal) {
+        boolean isStudent = userAccountService.isStudentAccount(principal.getUsername());
 
-        long count = "STUDENT".equalsIgnoreCase(currentRole) && studentId != null
-                ? notificationService.getUnreadCountForStudent(studentId)
+        long count = isStudent
+                ? notificationService.getUnreadCountForStudent(userAccountService.getStudentId(principal.getUsername()))
                 : notificationService.getUnreadCountForAdmin();
 
         Map<String, Object> resp = new HashMap<>();

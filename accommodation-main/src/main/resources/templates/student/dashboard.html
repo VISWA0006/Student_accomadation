@@ -31,22 +31,9 @@
                         </div>
                     </div>
 
-                    <!-- Switch Active Student Persona Dropdown -->
-                    <div style="background: rgba(255, 255, 255, 0.15); padding: 12px 18px; border-radius: var(--radius-md); backdrop-filter: blur(8px);">
-                        <label for="studentSwitcher" style="font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 6px; font-weight: 600;">
-                            Switch Demo Student Persona:
-                        </label>
-                        <select id="studentSwitcher" class="form-select form-select-sm"
-                                onchange="window.location.href='/student/switch?role=STUDENT&studentId=' + this.value;"
-                                style="background: #fff; color: var(--dark); font-weight: 600;">
-                            <option th:each="st : ${allStudents}"
-                                    th:value="${st.id}"
-                                    th:text="${st.fullName} + ' (' + ${st.registerNumber} + ')'"
-                                    th:selected="${st.id == student.id}">
-                                Student
-                            </option>
-                        </select>
-                    </div>
+                    <form th:action="@{/logout}" method="post">
+                        <button type="submit" class="btn btn-secondary">Sign out</button>
+                    </form>
                 </div>
             </div>
 

@@ -18,6 +18,11 @@
         </header>
 
         <main class="content-area">
+            <div th:replace="~{fragments/layout :: alerts}"></div>
+            <form th:if="${!hasLoginAccount}" th:action="@{/students/{id}/account(id=${student.id})}" method="post"
+                  style="margin-bottom: 16px;">
+                <button type="submit" class="btn btn-primary">Create student login</button>
+            </form>
             <div class="card">
                 <div class="card-header">
                     <div class="card-title" th:text="${student.fullName}">Student Name</div>

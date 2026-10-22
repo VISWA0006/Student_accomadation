@@ -1,6 +1,5 @@
 package com.accommodation.service;
 
-import com.accommodation.dto.NotificationPayload;
 import com.accommodation.entity.*;
 import com.accommodation.repository.HostelFeeRepository;
 import org.slf4j.Logger;
@@ -25,14 +24,11 @@ public class FeeReminderSchedulerService {
 
     private final HostelFeeRepository feeRepository;
     private final InAppNotificationService inAppNotificationService;
-    private final NotificationClientService notificationClientService;
 
     public FeeReminderSchedulerService(HostelFeeRepository feeRepository,
-                                       InAppNotificationService inAppNotificationService,
-                                       NotificationClientService notificationClientService) {
+                                       InAppNotificationService inAppNotificationService) {
         this.feeRepository = feeRepository;
         this.inAppNotificationService = inAppNotificationService;
-        this.notificationClientService = notificationClientService;
     }
 
     /**
@@ -53,7 +49,7 @@ public class FeeReminderSchedulerService {
             feeRepository.save(fee);
 
             // Fully paid fees never generate reminders
-            if (fee.getStatus() == PaymentStatus.PAID || fee.getRemainingBalance() <= 0.0) {
+            if (fee.getStatus() == PaymentStatus.PAID || fee.getRemainingBalance().signum() <= 0) {
                 continue;
             }
 
@@ -105,22 +101,7 @@ public class FeeReminderSchedulerService {
                 dedupKey
         );
 
-        if (notif.isPresent()) {
-            notificationClientService.sendNotification(new NotificationPayload(
-                    fee.getStudent().getFullName(),
-                    fee.getStudent().getEmail(),
-                    fee.getRoomNumber(),
-                    fee.getStatus().name(),
-                    "UPCOMING_FEE",
-                    fee.getFeeType().getDisplayName(),
-                    fee.getTotalAmount(),
-                    fee.getRemainingBalance(),
-                    null,
-                    message
-            ));
-            return 1;
-        }
-        return 0;
+        return notif.isPresent() ? 1 : 0;
     }
 
     private int sendDueTodayReminder(HostelFee fee, LocalDate today) {
@@ -141,22 +122,7 @@ public class FeeReminderSchedulerService {
                 dedupKey
         );
 
-        if (notif.isPresent()) {
-            notificationClientService.sendNotification(new NotificationPayload(
-                    fee.getStudent().getFullName(),
-                    fee.getStudent().getEmail(),
-                    fee.getRoomNumber(),
-                    fee.getStatus().name(),
-                    "PAYMENT_DUE",
-                    fee.getFeeType().getDisplayName(),
-                    fee.getTotalAmount(),
-                    fee.getRemainingBalance(),
-                    null,
-                    message
-            ));
-            return 1;
-        }
-        return 0;
+        return notif.isPresent() ? 1 : 0;
     }
 
     private int sendOverdueReminder(HostelFee fee, long daysOverdue, LocalDate today) {
@@ -192,21 +158,6 @@ public class FeeReminderSchedulerService {
                 adminDedupKey
         );
 
-        if (notif.isPresent()) {
-            notificationClientService.sendNotification(new NotificationPayload(
-                    fee.getStudent().getFullName(),
-                    fee.getStudent().getEmail(),
-                    fee.getRoomNumber(),
-                    "OVERDUE",
-                    "OVERDUE_FEE",
-                    fee.getFeeType().getDisplayName(),
-                    fee.getTotalAmount(),
-                    fee.getRemainingBalance(),
-                    null,
-                    message
-            ));
-            return 1;
-        }
-        return 0;
+        return notif.isPresent() ? 1 : 0;
     }
 }

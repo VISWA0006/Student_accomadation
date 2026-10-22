@@ -2,6 +2,8 @@ package com.accommodation.service;
 
 import com.accommodation.dto.HostelFeeRequestDTO;
 import com.accommodation.dto.RecordPaymentDTO;
+import com.accommodation.dto.FeeFilterDTO;
+import com.accommodation.dto.FeeStatsDTO;
 import com.accommodation.entity.*;
 import com.accommodation.repository.HostelFeeRepository;
 import com.accommodation.repository.PaymentTransactionRepository;
@@ -11,17 +13,20 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@ActiveProfiles("h2")
+@ActiveProfiles({"h2", "test"})
 @Transactional
 class HostelFeeManagementIntegrationTest {
 
@@ -69,14 +74,14 @@ class HostelFeeManagementIntegrationTest {
         request.setHostelName("Kaveri Boys Hostel");
         request.setRoomNumber("A-101");
         request.setFeeType(FeeType.MONTHLY_HOSTEL_FEE);
-        request.setTotalAmount(5000.0);
+        request.setTotalAmount(new BigDecimal("5000.00"));
         request.setDueDate(LocalDate.now().plusDays(10));
 
         HostelFee fee = feeService.createFee(request);
-        assertEquals(5000.0, fee.getRemainingBalance());
+        assertEquals(new BigDecimal("5000.00"), fee.getRemainingBalance());
 
         RecordPaymentDTO payment = new RecordPaymentDTO();
-        payment.setAmount(5000.0);
+        payment.setAmount(new BigDecimal("5000.00"));
         payment.setPaymentDate(LocalDate.now());
         payment.setPaymentMethod("UPI");
         payment.setTransactionReference("TXN-TEST-FULL-01");
@@ -87,8 +92,36 @@ class HostelFeeManagementIntegrationTest {
 
         HostelFee updated = feeService.getFeeById(fee.getId());
         assertEquals(PaymentStatus.PAID, updated.getStatus());
-        assertEquals(0.0, updated.getRemainingBalance());
-        assertEquals(5000.0, updated.getPaidAmount());
+        assertEquals(new BigDecimal("0.00"), updated.getRemainingBalance());
+        assertEquals(new BigDecimal("5000.00"), updated.getPaidAmount());
+    }
+
+    @Test
+    @DisplayName("Fee records are paged in the database and dashboard totals use aggregate queries")
+    void feeListUsesPaginationAndAggregates() {
+        HostelFeeRequestDTO first = new HostelFeeRequestDTO();
+        first.setStudentId(student1.getId());
+        first.setHostelName("Kaveri Boys Hostel");
+        first.setRoomNumber("A-101");
+        first.setTotalAmount(new BigDecimal("5000.00"));
+        first.setDueDate(LocalDate.now().plusDays(20));
+        feeService.createFee(first);
+
+        HostelFeeRequestDTO second = new HostelFeeRequestDTO();
+        second.setStudentId(student2.getId());
+        second.setHostelName("Yamuna Girls Hostel");
+        second.setRoomNumber("G-101");
+        second.setTotalAmount(new BigDecimal("6000.00"));
+        second.setDueDate(LocalDate.now().plusDays(25));
+        feeService.createFee(second);
+
+        Page<HostelFee> page = feeService.getFeePage(new FeeFilterDTO(), PageRequest.of(0, 1));
+        FeeStatsDTO stats = feeService.getFeeStats();
+
+        assertEquals(1, page.getContent().size());
+        assertEquals(2, page.getTotalElements());
+        assertEquals(11000.0, stats.getTotalFeesDue());
+        assertEquals(11000.0, stats.getTotalOutstandingBalance());
     }
 
     @Test
@@ -99,13 +132,13 @@ class HostelFeeManagementIntegrationTest {
         request.setHostelName("Kaveri Boys Hostel");
         request.setRoomNumber("A-101");
         request.setFeeType(FeeType.MESS_FEE);
-        request.setTotalAmount(6000.0);
+        request.setTotalAmount(new BigDecimal("6000.00"));
         request.setDueDate(LocalDate.now().plusDays(15));
 
         HostelFee fee = feeService.createFee(request);
 
         RecordPaymentDTO payment = new RecordPaymentDTO();
-        payment.setAmount(2500.0);
+        payment.setAmount(new BigDecimal("2500.00"));
         payment.setPaymentDate(LocalDate.now());
         payment.setPaymentMethod("Net Banking");
         payment.setTransactionReference("TXN-TEST-PARTIAL-01");
@@ -113,8 +146,8 @@ class HostelFeeManagementIntegrationTest {
         feeService.recordPayment(fee.getId(), payment);
 
         HostelFee updated = feeService.getFeeById(fee.getId());
-        assertEquals(3500.0, updated.getRemainingBalance());
-        assertEquals(2500.0, updated.getPaidAmount());
+        assertEquals(new BigDecimal("3500.00"), updated.getRemainingBalance());
+        assertEquals(new BigDecimal("2500.00"), updated.getPaidAmount());
         assertEquals(PaymentStatus.PARTIALLY_PAID, updated.getStatus());
     }
 
@@ -139,7 +172,7 @@ class HostelFeeManagementIntegrationTest {
         fee.recalculateStatus(LocalDate.now());
         fee = feeRepository.save(fee);
 
-        assertEquals(2000.0, fee.getRemainingBalance());
+        assertEquals(new BigDecimal("2000.00"), fee.getRemainingBalance());
         assertEquals(PaymentStatus.OVERDUE, fee.getStatus());
         assertEquals(5, fee.getDaysOverdue(LocalDate.now()));
     }
@@ -153,7 +186,7 @@ class HostelFeeManagementIntegrationTest {
         fee.recalculateStatus(LocalDate.now());
         fee = feeRepository.save(fee);
 
-        assertEquals(0.0, fee.getRemainingBalance());
+        assertEquals(new BigDecimal("0.00"), fee.getRemainingBalance());
         assertEquals(PaymentStatus.PAID, fee.getStatus());
         assertEquals(0, fee.getDaysOverdue(LocalDate.now()));
     }
@@ -222,6 +255,33 @@ class HostelFeeManagementIntegrationTest {
     }
 
     @Test
+    @DisplayName("Read notifications are excluded from student and admin inboxes")
+    void readNotificationsAreExcludedFromInboxes() {
+        InAppNotification unreadStudentNotification = notificationService.createNotification(
+                "STUDENT", student1, null, NotificationCategory.UPCOMING_FEE,
+                "Unread reminder", "Fee is due soon", "/student/fees", "TEST-UNREAD-STUDENT"
+        ).orElseThrow();
+        InAppNotification readStudentNotification = notificationService.createNotification(
+                "STUDENT", student1, null, NotificationCategory.UPCOMING_FEE,
+                "Read reminder", "Fee was due soon", "/student/fees", "TEST-READ-STUDENT"
+        ).orElseThrow();
+        InAppNotification readAdminNotification = notificationService.createNotification(
+                "ADMIN", null, null, NotificationCategory.ADMINISTRATIVE_ALERT,
+                "Admin alert", "Action required", "/notifications", "TEST-READ-ADMIN"
+        ).orElseThrow();
+
+        assertTrue(notificationService.markAsRead(unreadStudentNotification.getId()));
+        assertTrue(notificationService.markAsRead(readStudentNotification.getId()));
+        assertTrue(notificationService.markAsRead(readAdminNotification.getId()));
+        assertTrue(notificationService.getNotificationsForStudent(student1.getId(), null).isEmpty());
+        assertTrue(notificationService.getNotificationsForStudent(
+                student1.getId(), NotificationCategory.UPCOMING_FEE).isEmpty());
+        assertTrue(notificationService.getNotificationsForAdmin(null).isEmpty());
+        assertTrue(notificationService.getNotificationsForAdmin(
+                NotificationCategory.ADMINISTRATIVE_ALERT).isEmpty());
+    }
+
+    @Test
     @DisplayName("Scenario 10: Payment history and balances remain consistent after multiple payments")
     void test10_paymentHistoryAndBalancesRemainConsistent() {
         HostelFeeRequestDTO request = new HostelFeeRequestDTO();
@@ -229,43 +289,43 @@ class HostelFeeManagementIntegrationTest {
         request.setHostelName("Kaveri Boys Hostel");
         request.setRoomNumber("A-101");
         request.setFeeType(FeeType.MONTHLY_HOSTEL_FEE);
-        request.setTotalAmount(10000.0);
+        request.setTotalAmount(new BigDecimal("10000.00"));
         request.setDueDate(LocalDate.now().plusDays(20));
         HostelFee fee = feeService.createFee(request);
 
         // Payment 1: ₹3,000
         RecordPaymentDTO p1 = new RecordPaymentDTO();
-        p1.setAmount(3000.0);
+        p1.setAmount(new BigDecimal("3000.00"));
         p1.setPaymentMethod("UPI");
         p1.setTransactionReference("TXN-MULTI-01");
         feeService.recordPayment(fee.getId(), p1);
 
         HostelFee state1 = feeService.getFeeById(fee.getId());
-        assertEquals(3000.0, state1.getPaidAmount());
-        assertEquals(7000.0, state1.getRemainingBalance());
+        assertEquals(new BigDecimal("3000.00"), state1.getPaidAmount());
+        assertEquals(new BigDecimal("7000.00"), state1.getRemainingBalance());
         assertEquals(PaymentStatus.PARTIALLY_PAID, state1.getStatus());
 
         // Payment 2: ₹4,000
         RecordPaymentDTO p2 = new RecordPaymentDTO();
-        p2.setAmount(4000.0);
+        p2.setAmount(new BigDecimal("4000.00"));
         p2.setPaymentMethod("Net Banking");
         p2.setTransactionReference("TXN-MULTI-02");
         feeService.recordPayment(fee.getId(), p2);
 
         HostelFee state2 = feeService.getFeeById(fee.getId());
-        assertEquals(7000.0, state2.getPaidAmount());
-        assertEquals(3000.0, state2.getRemainingBalance());
+        assertEquals(new BigDecimal("7000.00"), state2.getPaidAmount());
+        assertEquals(new BigDecimal("3000.00"), state2.getRemainingBalance());
 
         // Payment 3: ₹3,000 (Clears balance)
         RecordPaymentDTO p3 = new RecordPaymentDTO();
-        p3.setAmount(3000.0);
+        p3.setAmount(new BigDecimal("3000.00"));
         p3.setPaymentMethod("Cash");
         p3.setTransactionReference("TXN-MULTI-03");
         feeService.recordPayment(fee.getId(), p3);
 
         HostelFee state3 = feeService.getFeeById(fee.getId());
-        assertEquals(10000.0, state3.getPaidAmount());
-        assertEquals(0.0, state3.getRemainingBalance());
+        assertEquals(new BigDecimal("10000.00"), state3.getPaidAmount());
+        assertEquals(new BigDecimal("0.00"), state3.getRemainingBalance());
         assertEquals(PaymentStatus.PAID, state3.getStatus());
 
         // Verify transaction history audit log
@@ -274,7 +334,7 @@ class HostelFeeManagementIntegrationTest {
 
         // Attempting an overpayment must fail
         RecordPaymentDTO p4 = new RecordPaymentDTO();
-        p4.setAmount(500.0);
+        p4.setAmount(new BigDecimal("500.00"));
         p4.setPaymentMethod("Cash");
         p4.setTransactionReference("TXN-MULTI-04");
         assertThrows(IllegalArgumentException.class, () -> feeService.recordPayment(fee.getId(), p4));

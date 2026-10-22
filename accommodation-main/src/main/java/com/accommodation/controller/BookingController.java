@@ -3,7 +3,9 @@ package com.accommodation.controller;
 import com.accommodation.dto.BookingRequestDTO;
 import com.accommodation.entity.Booking;
 import com.accommodation.exception.DuplicateResourceException;
+import com.accommodation.exception.ResourceNotFoundException;
 import com.accommodation.exception.RoomNotAvailableException;
+import com.accommodation.service.AccommodationStayService;
 import com.accommodation.service.BookingService;
 import com.accommodation.service.RoomService;
 import com.accommodation.service.StudentService;
@@ -23,13 +25,16 @@ public class BookingController {
     private final BookingService bookingService;
     private final StudentService studentService;
     private final RoomService roomService;
+    private final AccommodationStayService stayService;
 
     public BookingController(BookingService bookingService,
                              StudentService studentService,
-                             RoomService roomService) {
+                             RoomService roomService,
+                             AccommodationStayService stayService) {
         this.bookingService = bookingService;
         this.studentService = studentService;
         this.roomService = roomService;
+        this.stayService = stayService;
     }
 
     @GetMapping
@@ -64,15 +69,10 @@ public class BookingController {
         try {
             bookingService.createBooking(bookingRequest);
             redirectAttributes.addFlashAttribute("successMessage", 
-                    "Accommodation room booked successfully! Notification sent to student.");
+                    "Accommodation room booked successfully.");
             return "redirect:/bookings";
-        } catch (DuplicateResourceException | RoomNotAvailableException ex) {
+        } catch (DuplicateResourceException | RoomNotAvailableException | IllegalArgumentException ex) {
             model.addAttribute("errorMessage", ex.getMessage());
-            model.addAttribute("students", studentService.getAllStudents());
-            model.addAttribute("availableRooms", roomService.getAvailableRooms());
-            return "bookings/form";
-        } catch (Exception ex) {
-            model.addAttribute("errorMessage", "Booking failed: " + ex.getMessage());
             model.addAttribute("students", studentService.getAllStudents());
             model.addAttribute("availableRooms", roomService.getAvailableRooms());
             return "bookings/form";
@@ -84,8 +84,32 @@ public class BookingController {
         try {
             bookingService.cancelBooking(id);
             redirectAttributes.addFlashAttribute("successMessage", "Booking #" + id + " has been cancelled. Bed freed up!");
-        } catch (Exception ex) {
+        } catch (IllegalStateException | ResourceNotFoundException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", "Could not cancel booking: " + ex.getMessage());
+        }
+        return "redirect:/bookings";
+    }
+
+    @PostMapping("/{id}/check-in")
+    public String checkIn(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            stayService.checkIn(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Student checked in.");
+        } catch (IllegalStateException | ResourceNotFoundException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/bookings";
+    }
+
+    @PostMapping("/{id}/check-out")
+    public String checkOut(@PathVariable Long id,
+                           @RequestParam(required = false) String note,
+                           RedirectAttributes redirectAttributes) {
+        try {
+            stayService.checkOut(id, note);
+            redirectAttributes.addFlashAttribute("successMessage", "Student checked out.");
+        } catch (IllegalStateException | ResourceNotFoundException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         }
         return "redirect:/bookings";
     }

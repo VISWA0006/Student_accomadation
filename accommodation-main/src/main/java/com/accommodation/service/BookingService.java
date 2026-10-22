@@ -1,8 +1,8 @@
 package com.accommodation.service;
 
 import com.accommodation.dto.BookingRequestDTO;
-import com.accommodation.dto.NotificationPayload;
 import com.accommodation.entity.Booking;
+import com.accommodation.entity.NotificationCategory;
 import com.accommodation.entity.Room;
 import com.accommodation.entity.Student;
 import com.accommodation.exception.DuplicateResourceException;
@@ -23,16 +23,19 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final StudentRepository studentRepository;
     private final RoomRepository roomRepository;
-    private final NotificationClientService notificationClientService;
+    private final AccommodationStayService accommodationStayService;
+    private final InAppNotificationService inAppNotificationService;
 
     public BookingService(BookingRepository bookingRepository,
                           StudentRepository studentRepository,
                           RoomRepository roomRepository,
-                          NotificationClientService notificationClientService) {
+                          AccommodationStayService accommodationStayService,
+                          InAppNotificationService inAppNotificationService) {
         this.bookingRepository = bookingRepository;
         this.studentRepository = studentRepository;
         this.roomRepository = roomRepository;
-        this.notificationClientService = notificationClientService;
+        this.accommodationStayService = accommodationStayService;
+        this.inAppNotificationService = inAppNotificationService;
     }
 
     public List<Booking> getAllBookings() {
@@ -59,14 +62,14 @@ public class BookingService {
      * 3. Room must exist.
      * 4. Room must have available beds.
      * 5. Atomically increments room.occupiedBeds and updates room availability.
-     * 6. Calls Notification Microservice (asynchronously/gracefully).
+     * 6. Persists an in-app booking notification in the same transaction.
      */
     @Transactional
     public Booking createBooking(BookingRequestDTO request) {
-        Student student = studentRepository.findById(request.getStudentId())
+        Student student = studentRepository.findByIdForUpdate(request.getStudentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found with ID: " + request.getStudentId()));
 
-        Room room = roomRepository.findById(request.getRoomId())
+        Room room = roomRepository.findByIdForUpdate(request.getRoomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + request.getRoomId()));
 
         // Prevent duplicate active booking for the same student
@@ -107,15 +110,13 @@ public class BookingService {
         LocalDate bookingDate = request.getBookingDate() != null ? request.getBookingDate() : LocalDate.now();
         Booking booking = new Booking(student, room, bookingDate, "ACTIVE");
         Booking savedBooking = bookingRepository.save(booking);
+        accommodationStayService.initialize(savedBooking);
 
-        // Send simulated notification to microservice
-        NotificationPayload payload = new NotificationPayload(
-                student.getFullName(),
-                student.getEmail(),
-                room.getRoomNumber(),
-                "ACTIVE"
-        );
-        notificationClientService.sendBookingNotification(payload);
+        inAppNotificationService.createNotification(
+                "STUDENT", student, null, NotificationCategory.BOOKING_UPDATE,
+                "Accommodation booking confirmed",
+                "Room " + room.getRoomNumber() + " in " + room.getBuildingName() + " is assigned to you.",
+                "/notifications", "booking-created:" + savedBooking.getId());
 
         return savedBooking;
     }
@@ -126,7 +127,8 @@ public class BookingService {
      */
     @Transactional
     public Booking cancelBooking(Long id) {
-        Booking booking = getBookingById(id);
+        Booking booking = bookingRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + id));
 
         if ("CANCELLED".equalsIgnoreCase(booking.getStatus())) {
             throw new IllegalStateException("Booking ID " + id + " is already CANCELLED.");
@@ -134,6 +136,11 @@ public class BookingService {
 
         booking.setStatus("CANCELLED");
         Booking updatedBooking = bookingRepository.save(booking);
+        inAppNotificationService.createNotification(
+                "STUDENT", booking.getStudent(), null, NotificationCategory.BOOKING_UPDATE,
+                "Accommodation booking cancelled",
+                "Your booking for room " + booking.getRoom().getRoomNumber() + " has been cancelled.",
+                "/notifications", "booking-cancelled:" + booking.getId());
 
         Room room = booking.getRoom();
         if (room != null && room.getOccupiedBeds() > 0) {

@@ -56,7 +56,9 @@
                 </div>
 
                 <div class="card-body" style="padding: 0;">
-                    <div th:if="${#lists.isEmpty(notifications)}" style="padding: 48px; text-align: center; color: var(--text-muted);">
+                    <div id="emptyNotificationsMessage"
+                         th:style="${#lists.isEmpty(notifications)} ? '' : 'display: none;'"
+                         style="padding: 48px; text-align: center; color: var(--text-muted);">
                         <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
                         <h3 style="font-size: 16px; font-weight: 600; color: var(--text-secondary);">No Notifications</h3>
                         <p style="margin: 4px 0 0; font-size: 13px;">You have no notification alerts under this category.</p>
@@ -126,22 +128,30 @@
     function markNotificationRead(notifId) {
         fetch('/notifications/api/' + notifId + '/read', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
+            }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const card = document.getElementById('notif-card-' + notifId);
                 if (card) {
-                    card.style.backgroundColor = '#fff';
-                    card.style.borderLeft = '4px solid transparent';
-                    card.style.opacity = '0.85';
-                    const newBadge = card.querySelector('.badge[style*="var(--danger)"]');
-                    if (newBadge) newBadge.remove();
-                }
-                const btn = document.getElementById('read-btn-' + notifId);
-                if (btn) {
-                    btn.outerHTML = '<span style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;"><span>✓</span> Read</span>';
+                    card.remove();
+                    const countDisplay = document.getElementById('unreadCountDisplay');
+                    if (countDisplay) {
+                        const currentCount = Number.parseInt(countDisplay.textContent, 10);
+                        if (!Number.isNaN(currentCount)) {
+                            countDisplay.textContent = Math.max(0, currentCount - 1) + ' Unread';
+                        }
+                    }
+                    if (!document.querySelector('.notif-item')) {
+                        const emptyMessage = document.getElementById('emptyNotificationsMessage');
+                        if (emptyMessage) {
+                            emptyMessage.style.display = 'block';
+                        }
+                    }
                 }
                 // Refresh unread counters
                 updateGlobalUnreadCounter();
@@ -154,7 +164,10 @@
     function markAllNotificationsAsRead() {
         fetch('/notifications/api/read-all', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
+            }
         })
         .then(response => response.json())
         .then(data => {
