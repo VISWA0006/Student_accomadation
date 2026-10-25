@@ -1,9 +1,12 @@
 package com.accommodation.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 public class RoomDTO {
 
@@ -26,7 +29,8 @@ public class RoomDTO {
 
     @NotNull(message = "Monthly rent is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Monthly rent must be greater than zero")
-    private Double monthlyRent;
+    @Digits(integer = 10, fraction = 2, message = "Monthly rent must have at most two decimal places")
+    private BigDecimal monthlyRent;
 
     @NotBlank(message = "Hostel type is required")
     private String hostelType = "BOYS";
@@ -42,6 +46,14 @@ public class RoomDTO {
     }
 
     public RoomDTO(Long id, String roomNumber, String buildingName, String roomType, Integer capacity, Integer occupiedBeds, Double monthlyRent, String hostelType, String status, Integer availableBeds) {
+        this(id, roomNumber, buildingName, roomType, capacity, occupiedBeds,
+                monthlyRent != null ? BigDecimal.valueOf(monthlyRent).setScale(2, RoundingMode.HALF_UP) : null,
+                hostelType, status, availableBeds);
+    }
+
+    public RoomDTO(Long id, String roomNumber, String buildingName, String roomType, Integer capacity,
+                   Integer occupiedBeds, BigDecimal monthlyRent, String hostelType, String status,
+                   Integer availableBeds) {
         this.id = id;
         this.roomNumber = roomNumber;
         this.buildingName = buildingName;
@@ -102,12 +114,17 @@ public class RoomDTO {
         this.occupiedBeds = occupiedBeds;
     }
 
-    public Double getMonthlyRent() {
+    public BigDecimal getMonthlyRent() {
         return monthlyRent;
     }
 
-    public void setMonthlyRent(Double monthlyRent) {
+    public void setMonthlyRent(BigDecimal monthlyRent) {
         this.monthlyRent = monthlyRent;
+    }
+
+    public void setMonthlyRent(Double monthlyRent) {
+        this.monthlyRent = monthlyRent != null
+                ? BigDecimal.valueOf(monthlyRent).setScale(2, RoundingMode.HALF_UP) : null;
     }
 
     public String getStatus() {

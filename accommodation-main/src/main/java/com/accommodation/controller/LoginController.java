@@ -4,10 +4,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-public class ApiInfoController {
+public class LoginController {
 
-    @GetMapping("/api-info")
-    public String showApiGuide() {
-        return "api-info";
+    @GetMapping("/login")
+    public String login() {
+        return "login";
     }
 }

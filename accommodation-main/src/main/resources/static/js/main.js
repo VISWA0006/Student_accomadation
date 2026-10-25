@@ -1,7 +1,42 @@
-// Student Accommodation Management System - Client Script
+
+function updateGlobalUnreadCounter() {
+    fetch('/notifications/api/unread-count')
+        .then(response => {
+            if (!response.ok) return null;
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.unreadCount !== undefined) {
+                const navBadge = document.getElementById('navNotifBadge');
+                const sidebarBadge = document.getElementById('sidebarNotifBadge');
+                const displayCount = data.unreadCount;
+
+                if (navBadge) {
+                    if (displayCount > 0) {
+                        navBadge.textContent = displayCount > 99 ? '99+' : displayCount;
+                        navBadge.style.display = 'flex';
+                    } else {
+                        navBadge.style.display = 'none';
+                    }
+                }
+
+                if (sidebarBadge) {
+                    if (displayCount > 0) {
+                        sidebarBadge.textContent = displayCount;
+                        sidebarBadge.style.display = 'inline-block';
+                    } else {
+                        sidebarBadge.style.display = 'none';
+                    }
+                }
+            }
+        })
+        .catch(err => {
+
+        });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Auto-dismiss alerts after 5 seconds
+
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
         setTimeout(() => {
@@ -11,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000);
     });
 
-    // 2. Client-side room availability hints on booking form
     const roomSelect = document.getElementById('roomSelect');
     const roomHint = document.getElementById('roomHint');
     if (roomSelect && roomHint) {
@@ -25,4 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    updateGlobalUnreadCounter();
 });

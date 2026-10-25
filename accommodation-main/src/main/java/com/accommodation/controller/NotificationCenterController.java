@@ -1,0 +1,111 @@
+package com.accommodation.controller;
+
+import com.accommodation.entity.InAppNotification;
+import com.accommodation.entity.NotificationCategory;
+import com.accommodation.entity.Student;
+import com.accommodation.service.InAppNotificationService;
+import com.accommodation.service.StudentService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Controller
+@RequestMapping("/notifications")
+public class NotificationCenterController {
+
+    private final InAppNotificationService notificationService;
+    private final StudentService studentService;
+    private final com.accommodation.service.UserAccountService userAccountService;
+
+    public NotificationCenterController(InAppNotificationService notificationService,
+                                        StudentService studentService,
+                                        com.accommodation.service.UserAccountService userAccountService) {
+        this.notificationService = notificationService;
+        this.studentService = studentService;
+        this.userAccountService = userAccountService;
+    }
+
+    @GetMapping
+    public String showNotificationCenter(@RequestParam(value = "category", required = false) NotificationCategory category,
+                                         @AuthenticationPrincipal UserDetails principal,
+                                         Model model) {
+        boolean isStudent = userAccountService.isStudentAccount(principal.getUsername());
+        Long studentId = isStudent ? userAccountService.getStudentId(principal.getUsername()) : null;
+
+        List<InAppNotification> notifications;
+        long unreadCount;
+
+        if (isStudent && studentId != null) {
+            notifications = notificationService.getNotificationsForStudent(studentId, category);
+            unreadCount = notificationService.getUnreadCountForStudent(studentId);
+            Student student = studentService.getStudentById(studentId);
+            model.addAttribute("personaName", student.getFullName());
+        } else {
+            notifications = notificationService.getNotificationsForAdmin(category);
+            unreadCount = notificationService.getUnreadCountForAdmin();
+            model.addAttribute("personaName", "Administrator");
+        }
+
+        model.addAttribute("notifications", notifications);
+        model.addAttribute("unreadCount", unreadCount);
+        model.addAttribute("selectedCategory", category);
+        model.addAttribute("categories", NotificationCategory.values());
+        model.addAttribute("isStudent", isStudent);
+
+        return "notifications/center";
+    }
+
+    @PostMapping("/api/{id}/read")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> markSingleAsRead(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal UserDetails principal) {
+        boolean updated = userAccountService.isStudentAccount(principal.getUsername())
+                ? notificationService.markAsReadForStudent(
+                        id, userAccountService.getStudentId(principal.getUsername()))
+                : notificationService.markAsReadForAdmin(id);
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("success", updated);
+        resp.put("id", id);
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/api/read-all")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> markAllAsRead(
+            @AuthenticationPrincipal UserDetails principal) {
+        boolean isStudent = userAccountService.isStudentAccount(principal.getUsername());
+
+        if (isStudent) {
+            notificationService.markAllAsReadForStudent(userAccountService.getStudentId(principal.getUsername()));
+        } else {
+            notificationService.markAllAsReadForAdmin();
+        }
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("success", true);
+        return ResponseEntity.ok(resp);
+    }
+
+    @GetMapping("/api/unread-count")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getUnreadCount(
+            @AuthenticationPrincipal UserDetails principal) {
+        boolean isStudent = userAccountService.isStudentAccount(principal.getUsername());
+
+        long count = isStudent
+                ? notificationService.getUnreadCountForStudent(userAccountService.getStudentId(principal.getUsername()))
+                : notificationService.getUnreadCountForAdmin();
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("unreadCount", count);
+        return ResponseEntity.ok(resp);
+    }
+}

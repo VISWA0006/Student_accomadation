@@ -4,11 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
-/**
- * Entity representing an Accommodation Booking.
- * Mapped to the 'bookings' table in PostgreSQL.
- * Maintains Many-to-One relationships with Student and Room.
- */
 @Entity
 @Table(name = "bookings")
 public class Booking {
@@ -16,6 +11,9 @@ public class Booking {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "active_student_id", unique = true)
+    private Long activeStudentId;
 
     @NotNull(message = "Student is required")
     @ManyToOne(fetch = FetchType.EAGER)
@@ -32,7 +30,7 @@ public class Booking {
     private LocalDate bookingDate;
 
     @Column(name = "status", nullable = false)
-    private String status = "ACTIVE"; // ACTIVE, CANCELLED
+    private String status = "ACTIVE";
 
     public Booking() {
     }
@@ -82,6 +80,13 @@ public class Booking {
 
     public void setStatus(String status) {
         this.status = status;
+        synchronizeActiveStudentId();
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void synchronizeActiveStudentId() {
+        activeStudentId = "ACTIVE".equalsIgnoreCase(status) && student != null ? student.getId() : null;
     }
 
     @Override

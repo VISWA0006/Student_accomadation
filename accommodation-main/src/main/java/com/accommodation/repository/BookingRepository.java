@@ -2,14 +2,21 @@ package com.accommodation.repository;
 
 import com.accommodation.entity.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import jakarta.persistence.LockModeType;
+import java.util.Optional;
 
 import java.util.List;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.id = :bookingId")
+    Optional<Booking> findByIdForUpdate(@Param("bookingId") Long bookingId);
 
     List<Booking> findByStatus(String status);
 
@@ -19,12 +26,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     boolean existsByStudentIdAndStatus(Long studentId, String status);
 
-    /**
-     * HQL QUERY 2 (Assignment Requirement):
-     * Demonstrates Hibernate Query Language (HQL) using @Query.
-     * Finds all ACTIVE bookings for a given student.
-     * References the entity name 'Booking' and navigated association 'b.student.id'.
-     */
+    boolean existsByStudentIdAndRoomIdAndStatus(Long studentId, Long roomId, String status);
+
     @Query("SELECT b FROM Booking b WHERE b.student.id = :studentId AND b.status = 'ACTIVE'")
     List<Booking> findActiveBookingsByStudentHql(@Param("studentId") Long studentId);
 }

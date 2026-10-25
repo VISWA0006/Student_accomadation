@@ -4,6 +4,7 @@ import com.accommodation.entity.Student;
 import com.accommodation.exception.DuplicateResourceException;
 import com.accommodation.service.BookingService;
 import com.accommodation.service.StudentService;
+import com.accommodation.service.UserAccountService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,10 +20,13 @@ public class StudentController {
 
     private final StudentService studentService;
     private final BookingService bookingService;
+    private final UserAccountService userAccountService;
 
-    public StudentController(StudentService studentService, BookingService bookingService) {
+    public StudentController(StudentService studentService, BookingService bookingService,
+                             UserAccountService userAccountService) {
         this.studentService = studentService;
         this.bookingService = bookingService;
+        this.userAccountService = userAccountService;
     }
 
     @GetMapping
@@ -63,7 +67,22 @@ public class StudentController {
         Student student = studentService.getStudentById(id);
         model.addAttribute("student", student);
         model.addAttribute("activeBookings", bookingService.getActiveBookingsByStudentHql(id));
+        model.addAttribute("hasLoginAccount", userAccountService.hasStudentAccount(id));
         return "students/details";
+    }
+
+    @PostMapping("/{id}/account")
+    public String provisionStudentAccount(@PathVariable("id") Long id,
+                                          RedirectAttributes redirectAttributes) {
+        try {
+            UserAccountService.StudentCredentials credentials = userAccountService.provisionStudentAccount(id);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Student login created. Username: " + credentials.username()
+                            + " | Temporary password (shown once): " + credentials.temporaryPassword());
+        } catch (DuplicateResourceException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/students/" + id;
     }
 
     @GetMapping("/{id}/edit")

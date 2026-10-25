@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Notification Center')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/layout :: sidebar('notifications')}"></div>
+
+    <div class="main-wrapper">
+        <header class="top-navbar">
+            <div class="navbar-page-title">
+                <h1>🔔 Notification & Alert Center</h1>
+                <p th:text="'Alerts and reminders for ' + ${personaName}">Notifications</p>
+            </div>
+            <div th:replace="~{fragments/layout :: navbarActions('notifications')}"></div>
+        </header>
+
+        <main class="content-area">
+            <div th:replace="~{fragments/layout :: alerts}"></div>
+
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <a th:href="@{/notifications}"
+                           class="btn btn-sm"
+                           th:classappend="${selectedCategory == null} ? 'btn-primary' : 'btn-secondary'">
+                            All Alerts
+                        </a>
+                        <a th:each="cat : ${categories}"
+                           th:href="@{/notifications(category=${cat})}"
+                           class="btn btn-sm"
+                           th:classappend="${selectedCategory == cat} ? 'btn-primary' : 'btn-secondary'">
+                            <span th:text="${cat.icon} + ' ' + ${cat.displayName}">Category</span>
+                        </a>
+                    </div>
+
+                    <div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="markAllReadBtn"
+                                onclick="markAllNotificationsAsRead()">
+                            ✓ Mark All as Read
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="card-title">
+                        <span>Inbox</span>
+                        <span id="unreadCountDisplay" class="badge" style="background: var(--primary-light); color: var(--primary); margin-left: 8px;"
+                              th:text="${unreadCount} + ' Unread'">0 Unread</span>
+                    </div>
+                </div>
+
+                <div class="card-body" style="padding: 0;">
+                    <div id="emptyNotificationsMessage"
+                         th:style="${#lists.isEmpty(notifications)} ? '' : 'display: none;'"
+                         style="padding: 48px; text-align: center; color: var(--text-muted);">
+                        <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
+                        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-secondary);">No Notifications</h3>
+                        <p style="margin: 4px 0 0; font-size: 13px;">You have no notification alerts under this category.</p>
+                    </div>
+
+                    <div th:each="notif : ${notifications}"
+                         th:id="'notif-card-' + ${notif.id}"
+                         class="notif-item"
+                         th:style="${!notif.read} ? 'background-color: #f8faff; border-left: 4px solid var(--primary);' : 'background-color: #fff; border-left: 4px solid transparent; opacity: 0.85;'"
+                         style="padding: 18px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; transition: var(--transition);">
+
+                        <div style="display: flex; gap: 14px; align-items: flex-start;">
+
+                            <div style="width: 42px; height: 42px; border-radius: 50%; background: var(--bg-main); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+                                <span th:text="${notif.category.icon}">🔔</span>
+                            </div>
+
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <h4 style="font-size: 15px; margin: 0;"
+                                        th:style="${!notif.read} ? 'font-weight: 700; color: var(--text-primary);' : 'font-weight: 600; color: var(--text-secondary);'"
+                                        th:text="${notif.title}">Notification Title</h4>
+                                    <span class="badge" style="font-size: 11px; background: var(--bg-main); color: var(--text-secondary);"
+                                          th:text="${notif.category.displayName}">Category</span>
+                                    <span th:if="${!notif.read}" class="badge" style="background: var(--danger-light); color: var(--danger); font-size: 10px;">NEW</span>
+                                </div>
+
+                                <p style="margin: 6px 0 8px; font-size: 14px; color: var(--text-primary); line-height: 1.4;"
+                                   th:text="${notif.message}">Notification message body text goes here.</p>
+
+                                <div style="display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--text-muted);">
+                                    <span th:text="${#temporals.format(notif.createdAt, 'dd-MMM-yyyy HH:mm')}">Time</span>
+                                    <span th:if="${notif.hostelFee != null}" th:text="'Room: ' + ${notif.hostelFee.roomNumber}">Room</span>
+                                    <a th:if="${notif.linkUrl != null}" th:href="@{${notif.linkUrl}}"
+                                       style="color: var(--primary); font-weight: 600; text-decoration: none;">
+                                        View Details &rarr;
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="flex-shrink: 0;">
+                            <button th:if="${!notif.read}"
+                                    th:id="'read-btn-' + ${notif.id}"
+                                    type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    th:onclick="'markNotificationRead(' + ${notif.id} + ')'"
+                                    title="Mark as read without full page reload">
+                                Mark Read
+                            </button>
+                            <span th:if="${notif.read}" style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                                <span>✓</span> Read
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<script>
+    // AJAX mark single notification as read
+    function markNotificationRead(notifId) {
+        fetch('/notifications/api/' + notifId + '/read', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const card = document.getElementById('notif-card-' + notifId);
+                if (card) {
+                    card.remove();
+                    const countDisplay = document.getElementById('unreadCountDisplay');
+                    if (countDisplay) {
+                        const currentCount = Number.parseInt(countDisplay.textContent, 10);
+                        if (!Number.isNaN(currentCount)) {
+                            countDisplay.textContent = Math.max(0, currentCount - 1) + ' Unread';
+                        }
+                    }
+                    if (!document.querySelector('.notif-item')) {
+                        const emptyMessage = document.getElementById('emptyNotificationsMessage');
+                        if (emptyMessage) {
+                            emptyMessage.style.display = 'block';
+                        }
+                    }
+                }
+                // Refresh unread counters
+                updateGlobalUnreadCounter();
+            }
+        })
+        .catch(err => console.error('Error marking as read:', err));
+    }
+
+    // AJAX mark all as read
+    function markAllNotificationsAsRead() {
+        fetch('/notifications/api/read-all', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            }
+        })
+        .catch(err => console.error('Error marking all read:', err));
+    }
+</script>
+</body>
+</html>

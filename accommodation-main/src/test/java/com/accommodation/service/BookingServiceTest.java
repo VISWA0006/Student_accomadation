@@ -1,7 +1,6 @@
 package com.accommodation.service;
 
 import com.accommodation.dto.BookingRequestDTO;
-import com.accommodation.dto.NotificationPayload;
 import com.accommodation.entity.Booking;
 import com.accommodation.entity.Room;
 import com.accommodation.entity.Student;
@@ -38,7 +37,10 @@ public class BookingServiceTest {
     private RoomRepository roomRepository;
 
     @Mock
-    private NotificationClientService notificationClientService;
+    private AccommodationStayService accommodationStayService;
+
+    @Mock
+    private InAppNotificationService inAppNotificationService;
 
     @InjectMocks
     private BookingService bookingService;
@@ -60,8 +62,8 @@ public class BookingServiceTest {
     void testCreateBookingSuccess() {
         BookingRequestDTO request = new BookingRequestDTO(10L, 20L, LocalDate.now());
 
-        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
-        when(roomRepository.findById(20L)).thenReturn(Optional.of(room));
+        when(studentRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(student));
+        when(roomRepository.findByIdForUpdate(20L)).thenReturn(Optional.of(room));
         when(bookingRepository.existsByStudentIdAndStatus(10L, "ACTIVE")).thenReturn(false);
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -69,9 +71,11 @@ public class BookingServiceTest {
 
         assertNotNull(booking);
         assertEquals("ACTIVE", booking.getStatus());
-        assertEquals(1, room.getOccupiedBeds()); // Incremented from 0 to 1
+        assertEquals(1, room.getOccupiedBeds());
         verify(roomRepository, times(1)).save(room);
-        verify(notificationClientService, times(1)).sendBookingNotification(any(NotificationPayload.class));
+        verify(inAppNotificationService, times(1)).createNotification(
+                eq("STUDENT"), eq(student), isNull(), eq(com.accommodation.entity.NotificationCategory.BOOKING_UPDATE),
+                anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -81,8 +85,8 @@ public class BookingServiceTest {
         boysRoom.setId(30L);
         BookingRequestDTO request = new BookingRequestDTO(10L, 30L, LocalDate.now());
 
-        when(studentRepository.findById(10L)).thenReturn(Optional.of(student)); // Priya (FEMALE)
-        when(roomRepository.findById(30L)).thenReturn(Optional.of(boysRoom));  // Boys Hostel
+        when(studentRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(student));
+        when(roomRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(boysRoom));
         when(bookingRepository.existsByStudentIdAndStatus(10L, "ACTIVE")).thenReturn(false);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> bookingService.createBooking(request));
@@ -95,8 +99,8 @@ public class BookingServiceTest {
     void testCreateBookingDuplicateActiveThrowsException() {
         BookingRequestDTO request = new BookingRequestDTO(10L, 20L, LocalDate.now());
 
-        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
-        when(roomRepository.findById(20L)).thenReturn(Optional.of(room));
+        when(studentRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(student));
+        when(roomRepository.findByIdForUpdate(20L)).thenReturn(Optional.of(room));
         when(bookingRepository.existsByStudentIdAndStatus(10L, "ACTIVE")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> bookingService.createBooking(request));
@@ -106,11 +110,11 @@ public class BookingServiceTest {
     @Test
     @DisplayName("Should throw RoomNotAvailableException if room is full")
     void testCreateBookingRoomFullThrowsException() {
-        room.setOccupiedBeds(2); // capacity is 2 -> available beds = 0
+        room.setOccupiedBeds(2);
         BookingRequestDTO request = new BookingRequestDTO(10L, 20L, LocalDate.now());
 
-        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
-        when(roomRepository.findById(20L)).thenReturn(Optional.of(room));
+        when(studentRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(student));
+        when(roomRepository.findByIdForUpdate(20L)).thenReturn(Optional.of(room));
         when(bookingRepository.existsByStudentIdAndStatus(10L, "ACTIVE")).thenReturn(false);
 
         assertThrows(RoomNotAvailableException.class, () -> bookingService.createBooking(request));
@@ -124,13 +128,13 @@ public class BookingServiceTest {
         Booking booking = new Booking(student, room, LocalDate.now(), "ACTIVE");
         booking.setId(100L);
 
-        when(bookingRepository.findById(100L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(booking));
         when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
 
         Booking cancelled = bookingService.cancelBooking(100L);
 
         assertEquals("CANCELLED", cancelled.getStatus());
-        assertEquals(0, room.getOccupiedBeds()); // Decremented from 1 to 0
+        assertEquals(0, room.getOccupiedBeds());
         verify(roomRepository, times(1)).save(room);
     }
 }

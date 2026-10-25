@@ -7,10 +7,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entity representing a Student enrolled in college accommodation.
- * Mapped to the 'students' table in PostgreSQL via Hibernate.
- */
 @Entity
 @Table(name = "students")
 public class Student {
@@ -46,7 +42,7 @@ public class Student {
 
     @NotBlank(message = "Gender is required")
     @Column(name = "gender", nullable = false)
-    private String gender = "MALE"; // MALE, FEMALE
+    private String gender = "MALE";
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Booking> bookings = new ArrayList<>();

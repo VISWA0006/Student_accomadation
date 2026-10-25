@@ -2,16 +2,15 @@ package com.accommodation.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entity representing an Accommodation Room.
- * Mapped to the 'rooms' table in PostgreSQL.
- */
 @Entity
 @Table(name = "rooms")
 public class Room {
@@ -19,6 +18,10 @@ public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     @NotBlank(message = "Room number is required")
     @Column(name = "room_number", nullable = false, unique = true)
@@ -30,7 +33,7 @@ public class Room {
 
     @NotBlank(message = "Room type is required")
     @Column(name = "room_type", nullable = false)
-    private String roomType; // e.g. Single, Double Sharing, Triple Sharing
+    private String roomType;
 
     @NotNull(message = "Capacity is required")
     @Min(value = 1, message = "Capacity must be at least 1")
@@ -44,15 +47,16 @@ public class Room {
 
     @NotNull(message = "Monthly rent is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Monthly rent must be greater than zero")
-    @Column(name = "monthly_rent", nullable = false)
-    private Double monthlyRent;
+    @Digits(integer = 10, fraction = 2, message = "Monthly rent must have at most two decimal places")
+    @Column(name = "monthly_rent", nullable = false, precision = 12, scale = 2)
+    private BigDecimal monthlyRent;
 
     @NotBlank(message = "Hostel type is required")
     @Column(name = "hostel_type", nullable = false)
-    private String hostelType = "BOYS"; // BOYS, GIRLS, COED
+    private String hostelType = "BOYS";
 
     @Column(name = "status", nullable = false)
-    private String status = "AVAILABLE"; // AVAILABLE, FULL
+    private String status = "AVAILABLE";
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
     private List<Booking> bookings = new ArrayList<>();
@@ -65,6 +69,12 @@ public class Room {
     }
 
     public Room(String roomNumber, String buildingName, String roomType, Integer capacity, Integer occupiedBeds, Double monthlyRent, String hostelType) {
+        this(roomNumber, buildingName, roomType, capacity, occupiedBeds,
+                BigDecimal.valueOf(monthlyRent).setScale(2, RoundingMode.HALF_UP), hostelType);
+    }
+
+    public Room(String roomNumber, String buildingName, String roomType, Integer capacity, Integer occupiedBeds,
+                BigDecimal monthlyRent, String hostelType) {
         this.roomNumber = roomNumber;
         this.buildingName = buildingName;
         this.roomType = roomType;
@@ -139,12 +149,17 @@ public class Room {
         updateAvailability();
     }
 
-    public Double getMonthlyRent() {
+    public BigDecimal getMonthlyRent() {
         return monthlyRent;
     }
 
+    public void setMonthlyRent(BigDecimal monthlyRent) {
+        this.monthlyRent = monthlyRent != null ? monthlyRent.setScale(2, RoundingMode.HALF_UP) : null;
+    }
+
     public void setMonthlyRent(Double monthlyRent) {
-        this.monthlyRent = monthlyRent;
+        this.monthlyRent = monthlyRent != null
+                ? BigDecimal.valueOf(monthlyRent).setScale(2, RoundingMode.HALF_UP) : null;
     }
 
     public String getStatus() {
