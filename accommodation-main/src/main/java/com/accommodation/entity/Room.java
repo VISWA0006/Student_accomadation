@@ -11,10 +11,6 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entity representing an Accommodation Room.
- * Mapped to the 'rooms' table in PostgreSQL.
- */
 @Entity
 @Table(name = "rooms")
 public class Room {
@@ -37,7 +33,7 @@ public class Room {
 
     @NotBlank(message = "Room type is required")
     @Column(name = "room_type", nullable = false)
-    private String roomType; // e.g. Single, Double Sharing, Triple Sharing
+    private String roomType;
 
     @NotNull(message = "Capacity is required")
     @Min(value = 1, message = "Capacity must be at least 1")
@@ -57,10 +53,10 @@ public class Room {
 
     @NotBlank(message = "Hostel type is required")
     @Column(name = "hostel_type", nullable = false)
-    private String hostelType = "BOYS"; // BOYS, GIRLS, COED
+    private String hostelType = "BOYS";
 
     @Column(name = "status", nullable = false)
-    private String status = "AVAILABLE"; // AVAILABLE, FULL
+    private String status = "AVAILABLE";
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
     private List<Booking> bookings = new ArrayList<>();

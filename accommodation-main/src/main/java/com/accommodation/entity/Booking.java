@@ -4,11 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
-/**
- * Entity representing an Accommodation Booking.
- * Mapped to the 'bookings' table in PostgreSQL.
- * Maintains Many-to-One relationships with Student and Room.
- */
 @Entity
 @Table(name = "bookings")
 public class Booking {
@@ -35,7 +30,7 @@ public class Booking {
     private LocalDate bookingDate;
 
     @Column(name = "status", nullable = false)
-    private String status = "ACTIVE"; // ACTIVE, CANCELLED
+    private String status = "ACTIVE";
 
     public Booking() {
     }

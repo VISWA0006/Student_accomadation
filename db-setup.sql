@@ -1,19 +1,3 @@
--- ===================================================================
--- PostgreSQL Database Initialization Script
--- Project: Student Accommodation & Hostel Fee Management System
--- ===================================================================
-
--- 1. Create the database (Run as superuser 'postgres' in psql or pgAdmin)
--- CREATE DATABASE accommodation_db;
-
--- 2. Connect to the database
--- \c accommodation_db;
-
--- Note: When running Spring Boot with 'spring.jpa.hibernate.ddl-auto=update',
--- Hibernate automatically creates all tables and foreign keys below.
--- You can run the following SQL statements manually if you wish to pre-create the schema:
-
--- Students Table
 CREATE TABLE IF NOT EXISTS students (
     id BIGSERIAL PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
@@ -25,7 +9,6 @@ CREATE TABLE IF NOT EXISTS students (
     gender VARCHAR(20) NOT NULL DEFAULT 'MALE'
 );
 
--- Accommodation Rooms Table
 CREATE TABLE IF NOT EXISTS rooms (
     id BIGSERIAL PRIMARY KEY,
     room_number VARCHAR(50) NOT NULL UNIQUE,
@@ -38,7 +21,6 @@ CREATE TABLE IF NOT EXISTS rooms (
     status VARCHAR(50) NOT NULL DEFAULT 'AVAILABLE'
 );
 
--- Bookings Table (Foreign keys referencing students and rooms)
 CREATE TABLE IF NOT EXISTS bookings (
     id BIGSERIAL PRIMARY KEY,
     student_id BIGINT NOT NULL,
@@ -49,7 +31,6 @@ CREATE TABLE IF NOT EXISTS bookings (
     CONSTRAINT fk_booking_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE RESTRICT
 );
 
--- Hostel Fee Records Table
 CREATE TABLE IF NOT EXISTS hostel_fees (
     id BIGSERIAL PRIMARY KEY,
     student_id BIGINT NOT NULL,
@@ -69,7 +50,6 @@ CREATE TABLE IF NOT EXISTS hostel_fees (
     CONSTRAINT fk_fee_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 );
 
--- Payment Transactions Audit Table
 CREATE TABLE IF NOT EXISTS payment_transactions (
     id BIGSERIAL PRIMARY KEY,
     fee_id BIGINT NOT NULL,
@@ -86,7 +66,6 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
     CONSTRAINT fk_payment_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 );
 
--- In-App Notifications & Alerts Table
 CREATE TABLE IF NOT EXISTS in_app_notifications (
     id BIGSERIAL PRIMARY KEY,
     recipient_role VARCHAR(50) NOT NULL,
@@ -103,15 +82,12 @@ CREATE TABLE IF NOT EXISTS in_app_notifications (
     CONSTRAINT fk_notif_fee FOREIGN KEY (fee_id) REFERENCES hostel_fees(id) ON DELETE SET NULL
 );
 
--- JPA Inheritance Mapping (JOINED Strategy)
--- Parent Table: persons
 CREATE TABLE IF NOT EXISTS persons (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL
 );
 
--- Child Table: student_persons (person_id is PK and FK referencing persons.id)
 CREATE TABLE IF NOT EXISTS student_persons (
     person_id BIGINT PRIMARY KEY,
     roll_number VARCHAR(100) NOT NULL,

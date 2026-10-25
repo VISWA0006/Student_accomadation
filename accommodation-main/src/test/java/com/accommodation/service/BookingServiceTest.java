@@ -71,7 +71,7 @@ public class BookingServiceTest {
 
         assertNotNull(booking);
         assertEquals("ACTIVE", booking.getStatus());
-        assertEquals(1, room.getOccupiedBeds()); // Incremented from 0 to 1
+        assertEquals(1, room.getOccupiedBeds());
         verify(roomRepository, times(1)).save(room);
         verify(inAppNotificationService, times(1)).createNotification(
                 eq("STUDENT"), eq(student), isNull(), eq(com.accommodation.entity.NotificationCategory.BOOKING_UPDATE),
@@ -85,8 +85,8 @@ public class BookingServiceTest {
         boysRoom.setId(30L);
         BookingRequestDTO request = new BookingRequestDTO(10L, 30L, LocalDate.now());
 
-        when(studentRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(student)); // Priya (FEMALE)
-        when(roomRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(boysRoom));  // Boys Hostel
+        when(studentRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(student));
+        when(roomRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(boysRoom));
         when(bookingRepository.existsByStudentIdAndStatus(10L, "ACTIVE")).thenReturn(false);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> bookingService.createBooking(request));
@@ -110,7 +110,7 @@ public class BookingServiceTest {
     @Test
     @DisplayName("Should throw RoomNotAvailableException if room is full")
     void testCreateBookingRoomFullThrowsException() {
-        room.setOccupiedBeds(2); // capacity is 2 -> available beds = 0
+        room.setOccupiedBeds(2);
         BookingRequestDTO request = new BookingRequestDTO(10L, 20L, LocalDate.now());
 
         when(studentRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(student));
@@ -134,7 +134,7 @@ public class BookingServiceTest {
         Booking cancelled = bookingService.cancelBooking(100L);
 
         assertEquals("CANCELLED", cancelled.getStatus());
-        assertEquals(0, room.getOccupiedBeds()); // Decremented from 1 to 0
+        assertEquals(0, room.getOccupiedBeds());
         verify(roomRepository, times(1)).save(room);
     }
 }

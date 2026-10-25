@@ -54,16 +54,6 @@ public class BookingService {
         return bookingRepository.findByStatus(status.trim().toUpperCase());
     }
 
-    /**
-     * Creates a new booking within a database transaction.
-     * Enforces business rules:
-     * 1. Student must exist.
-     * 2. Student must NOT already hold an ACTIVE booking.
-     * 3. Room must exist.
-     * 4. Room must have available beds.
-     * 5. Atomically increments room.occupiedBeds and updates room availability.
-     * 6. Persists an in-app booking notification in the same transaction.
-     */
     @Transactional
     public Booking createBooking(BookingRequestDTO request) {
         Student student = studentRepository.findByIdForUpdate(request.getStudentId())
@@ -72,13 +62,11 @@ public class BookingService {
         Room room = roomRepository.findByIdForUpdate(request.getRoomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + request.getRoomId()));
 
-        // Prevent duplicate active booking for the same student
         if (bookingRepository.existsByStudentIdAndStatus(student.getId(), "ACTIVE")) {
-            throw new DuplicateResourceException("Student " + student.getFullName() + 
+            throw new DuplicateResourceException("Student " + student.getFullName() +
                     " (" + student.getRegisterNumber() + ") already has an ACTIVE accommodation booking!");
         }
 
-        // Enforce Gender-based Hostel Allocation Rule
         String studentGender = student.getGender() != null ? student.getGender().trim().toUpperCase() : "MALE";
         String hostelType = room.getHostelType() != null ? room.getHostelType().trim().toUpperCase() : "BOYS";
 
@@ -89,24 +77,21 @@ public class BookingService {
             if (!isMaleInBoys && !isFemaleInGirls) {
                 String expected = "MALE".equalsIgnoreCase(studentGender) ? "Boys Hostel" : "Girls Hostel";
                 String actual = "BOYS".equalsIgnoreCase(hostelType) ? "Boys Hostel" : "Girls Hostel";
-                throw new IllegalArgumentException("Hostel Gender Restriction: " + student.getFullName() + 
-                        " is a " + studentGender + " student and cannot be allocated to " + actual + " (" + 
+                throw new IllegalArgumentException("Hostel Gender Restriction: " + student.getFullName() +
+                        " is a " + studentGender + " student and cannot be allocated to " + actual + " (" +
                         room.getBuildingName() + " - Room " + room.getRoomNumber() + ")! Please choose a " + expected + ".");
             }
         }
 
-        // Validate available beds
         if (room.getAvailableBeds() <= 0) {
-            throw new RoomNotAvailableException("Room " + room.getRoomNumber() + 
+            throw new RoomNotAvailableException("Room " + room.getRoomNumber() +
                     " has no available beds! Capacity: " + room.getCapacity() + ", Occupied: " + room.getOccupiedBeds());
         }
 
-        // Update room occupancy
         room.setOccupiedBeds(room.getOccupiedBeds() + 1);
         room.updateAvailability();
         roomRepository.save(room);
 
-        // Create booking
         LocalDate bookingDate = request.getBookingDate() != null ? request.getBookingDate() : LocalDate.now();
         Booking booking = new Booking(student, room, bookingDate, "ACTIVE");
         Booking savedBooking = bookingRepository.save(booking);
@@ -121,10 +106,6 @@ public class BookingService {
         return savedBooking;
     }
 
-    /**
-     * Cancels an existing active booking within a database transaction.
-     * Atomically decrements room.occupiedBeds and updates room availability status.
-     */
     @Transactional
     public Booking cancelBooking(Long id) {
         Booking booking = bookingRepository.findByIdForUpdate(id)
@@ -156,9 +137,6 @@ public class BookingService {
         return bookingRepository.count();
     }
 
-    /**
-     * Demonstrates HQL Query 2: Find active bookings for a particular student
-     */
     public List<Booking> getActiveBookingsByStudentHql(Long studentId) {
         return bookingRepository.findActiveBookingsByStudentHql(studentId);
     }

@@ -14,7 +14,6 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
 
-    // Constructor-based dependency injection (Spring Best Practice)
     public StudentService(StudentRepository studentRepository) {
         this.studentRepository = studentRepository;
     }
@@ -31,7 +30,7 @@ public class StudentService {
     @Transactional
     public Student addStudent(Student student) {
         if (studentRepository.existsByRegisterNumber(student.getRegisterNumber())) {
-            throw new DuplicateResourceException("Student with Register Number '" + 
+            throw new DuplicateResourceException("Student with Register Number '" +
                     student.getRegisterNumber() + "' already exists!");
         }
         return studentRepository.save(student);
@@ -41,10 +40,9 @@ public class StudentService {
     public Student updateStudent(Long id, Student studentDetails) {
         Student existingStudent = getStudentById(id);
 
-        // Check duplicate register number if changed
         if (!existingStudent.getRegisterNumber().equalsIgnoreCase(studentDetails.getRegisterNumber())) {
             if (studentRepository.existsByRegisterNumber(studentDetails.getRegisterNumber())) {
-                throw new DuplicateResourceException("Student with Register Number '" + 
+                throw new DuplicateResourceException("Student with Register Number '" +
                         studentDetails.getRegisterNumber() + "' already exists!");
             }
         }
@@ -75,9 +73,6 @@ public class StudentService {
         return studentRepository.searchStudents(keyword.trim());
     }
 
-    /**
-     * Demonstrates HQL Query 1: Find students by department
-     */
     public List<Student> getStudentsByDepartmentHql(String department) {
         return studentRepository.findStudentsByDepartmentHql(department);
     }

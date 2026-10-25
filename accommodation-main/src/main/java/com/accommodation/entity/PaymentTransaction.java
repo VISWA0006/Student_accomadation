@@ -10,10 +10,6 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * Entity representing an individual payment made against a HostelFee.
- * Ensures an immutable transaction audit log and unique receipt reference.
- */
 @Entity
 @Table(name = "payment_transactions",
        uniqueConstraints = {

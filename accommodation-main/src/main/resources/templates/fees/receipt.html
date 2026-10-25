@@ -54,13 +54,11 @@
 <div class="receipt-card">
     <div class="watermark">OFFICIAL RECEIPT</div>
 
-    <!-- Actions Bar (Hidden when printing) -->
     <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
         <a th:href="@{'/fees/' + ${fee.id}}" class="btn btn-secondary btn-sm">&larr; Back to Fee Details</a>
         <button onclick="window.print()" class="btn btn-primary btn-sm">🖨️ Print / Download Receipt</button>
     </div>
 
-    <!-- Header & Seal -->
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 20px; margin-bottom: 24px;">
         <div style="display: flex; align-items: center; gap: 14px;">
             <div style="font-size: 40px;">🏢</div>
@@ -75,7 +73,6 @@
         </div>
     </div>
 
-    <!-- Receipt Metadata Banner -->
     <div style="background: var(--bg-main); padding: 16px 20px; border-radius: var(--radius-md); display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
         <div>
             <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Receipt Number</div>
@@ -91,7 +88,6 @@
         </div>
     </div>
 
-    <!-- Student & Hostel Breakdown -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
         <div>
             <h3 style="font-size: 13px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Student Details</h3>
@@ -110,7 +106,6 @@
         </div>
     </div>
 
-    <!-- Payment Breakdown Table -->
     <table class="table" style="margin-bottom: 24px;">
         <thead>
         <tr style="background: var(--bg-main);">
@@ -155,7 +150,6 @@
         </tfoot>
     </table>
 
-    <!-- Footer Signoff -->
     <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; padding-top: 20px; border-top: 1px dashed var(--border-color);">
         <div style="font-size: 12px; color: var(--text-muted); max-width: 380px;">
             * This is a computer-generated official hostel fee receipt validated by the Student Accommodation Management System. No physical signature is required.

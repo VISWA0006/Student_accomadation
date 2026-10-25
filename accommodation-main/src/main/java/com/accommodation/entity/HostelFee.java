@@ -13,10 +13,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entity representing a Student Hostel Fee record.
- * Mapped to 'hostel_fees' table in PostgreSQL / H2.
- */
 @Entity
 @Table(name = "hostel_fees")
 public class HostelFee {
@@ -111,15 +107,6 @@ public class HostelFee {
         recalculateStatus(LocalDate.now());
     }
 
-    /**
-     * Recomputes remaining balance and payment status strictly according to business rules:
-     * 1. Balance = Total - Paid
-     * 2. If balance <= 0 (or paid == total) -> PAID (A fully paid fee must NEVER be marked overdue)
-     * 3. If balance > 0 and dueDate < currentDate -> OVERDUE (Partially paid or unpaid past due date)
-     * 4. If balance > 0 and dueDate == currentDate -> UPCOMING or PENDING due today
-     * 5. If balance > 0 and dueDate is within next 7 days -> UPCOMING
-     * 6. If balance > 0 and dueDate > 7 days away -> PARTIALLY_PAID if paid > 0 else PENDING
-     */
     public void recalculateStatus(LocalDate currentDate) {
         if (currentDate == null) {
             currentDate = LocalDate.now();
@@ -131,7 +118,6 @@ public class HostelFee {
             this.paidAmount = BigDecimal.ZERO;
         }
 
-        // Remaining balance calculation rounded to 2 decimal places
         this.totalAmount = this.totalAmount.setScale(2, RoundingMode.HALF_UP);
         this.paidAmount = this.paidAmount.setScale(2, RoundingMode.HALF_UP);
         BigDecimal balance = this.totalAmount.subtract(this.paidAmount).setScale(2, RoundingMode.HALF_UP);
@@ -145,26 +131,22 @@ public class HostelFee {
             return;
         }
 
-        // Unpaid or partially paid balance remains
         if (this.dueDate.isBefore(currentDate)) {
-            // Due date has passed and balance remains unpaid
+
             this.status = PaymentStatus.OVERDUE;
         } else if (!this.dueDate.isAfter(currentDate.plusDays(7))) {
-            // Due date is approaching (within next 7 days or today) and balance remains unpaid
+
             this.status = PaymentStatus.UPCOMING;
         } else if (this.paidAmount.signum() > 0) {
-            // Paid partially, but due date is not yet within 7 days
+
             this.status = PaymentStatus.PARTIALLY_PAID;
         } else {
-            // No payment recorded, due date is comfortably in future
+
             this.status = PaymentStatus.PENDING;
         }
         this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * Returns how many days overdue this record is (0 if not overdue).
-     */
     public long getDaysOverdue(LocalDate currentDate) {
         if (currentDate == null) currentDate = LocalDate.now();
         if (this.dueDate != null && this.dueDate.isBefore(currentDate)

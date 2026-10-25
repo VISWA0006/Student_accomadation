@@ -38,10 +38,6 @@ public class StudentPortalController {
         this.userAccountService = userAccountService;
     }
 
-    /**
-     * Dedicated Student Fee Portal Dashboard.
-     * Enforces that students only see their own financial data and payment receipts.
-     */
     @GetMapping("/fees")
     public String studentFeeDashboard(@AuthenticationPrincipal UserDetails principal, Model model) {
         Long studentId = userAccountService.getStudentId(principal.getUsername());
@@ -56,7 +52,6 @@ public class StudentPortalController {
         Double totalBalance = fees.stream().map(HostelFee::getRemainingBalance)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add).doubleValue();
 
-        // Find earliest upcoming or overdue due date
         LocalDate nextDueDate = fees.stream()
                 .filter(f -> f.getRemainingBalance().signum() > 0)
                 .map(HostelFee::getDueDate)

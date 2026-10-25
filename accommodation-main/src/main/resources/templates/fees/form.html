@@ -25,7 +25,7 @@
                 </div>
                 <div class="card-body">
                     <form th:action="@{/fees}" th:object="${feeRequest}" method="post">
-                        <!-- Student Selection -->
+
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label for="studentId">Select Student <span style="color: var(--danger);">*</span></label>
                             <select id="studentId" th:field="*{studentId}" class="form-control"
@@ -40,7 +40,6 @@
                             <div th:if="${#fields.hasErrors('studentId')}" class="invalid-feedback" th:errors="*{studentId}"></div>
                         </div>
 
-                        <!-- Hostel & Room -->
                         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
                             <div class="form-group">
                                 <label for="hostelName">Hostel Name <span style="color: var(--danger);">*</span></label>
@@ -59,7 +58,6 @@
                             </div>
                         </div>
 
-                        <!-- Fee Type -->
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label for="feeType">Fee Type <span style="color: var(--danger);">*</span></label>
                             <select id="feeType" th:field="*{feeType}" class="form-control" required>
@@ -69,7 +67,6 @@
                             </select>
                         </div>
 
-                        <!-- Total Fee Amount and Due Date -->
                         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
                             <div class="form-group">
                                 <label for="totalAmount">Total Fee Amount (₹) <span style="color: var(--danger);">*</span></label>

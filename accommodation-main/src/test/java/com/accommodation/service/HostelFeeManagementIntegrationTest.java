@@ -56,7 +56,7 @@ class HostelFeeManagementIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Clean test slate in proper foreign key order
+
         notificationRepository.deleteAll();
         transactionRepository.deleteAll();
         feeRepository.deleteAll();
@@ -202,7 +202,6 @@ class HostelFeeManagementIntegrationTest {
         );
         assertTrue(first.isPresent());
 
-        // Attempting to send again with same dedupKey
         Optional<InAppNotification> second = notificationService.createNotification(
                 "STUDENT", student1, null, NotificationCategory.UPCOMING_FEE,
                 "Reminder 2", "Duplicate message", "/student/fees", dedupKey
@@ -293,7 +292,6 @@ class HostelFeeManagementIntegrationTest {
         request.setDueDate(LocalDate.now().plusDays(20));
         HostelFee fee = feeService.createFee(request);
 
-        // Payment 1: ₹3,000
         RecordPaymentDTO p1 = new RecordPaymentDTO();
         p1.setAmount(new BigDecimal("3000.00"));
         p1.setPaymentMethod("UPI");
@@ -305,7 +303,6 @@ class HostelFeeManagementIntegrationTest {
         assertEquals(new BigDecimal("7000.00"), state1.getRemainingBalance());
         assertEquals(PaymentStatus.PARTIALLY_PAID, state1.getStatus());
 
-        // Payment 2: ₹4,000
         RecordPaymentDTO p2 = new RecordPaymentDTO();
         p2.setAmount(new BigDecimal("4000.00"));
         p2.setPaymentMethod("Net Banking");
@@ -316,7 +313,6 @@ class HostelFeeManagementIntegrationTest {
         assertEquals(new BigDecimal("7000.00"), state2.getPaidAmount());
         assertEquals(new BigDecimal("3000.00"), state2.getRemainingBalance());
 
-        // Payment 3: ₹3,000 (Clears balance)
         RecordPaymentDTO p3 = new RecordPaymentDTO();
         p3.setAmount(new BigDecimal("3000.00"));
         p3.setPaymentMethod("Cash");
@@ -328,11 +324,9 @@ class HostelFeeManagementIntegrationTest {
         assertEquals(new BigDecimal("0.00"), state3.getRemainingBalance());
         assertEquals(PaymentStatus.PAID, state3.getStatus());
 
-        // Verify transaction history audit log
         List<PaymentTransaction> txList = feeService.getTransactionsForFee(fee.getId());
         assertEquals(3, txList.size());
 
-        // Attempting an overpayment must fail
         RecordPaymentDTO p4 = new RecordPaymentDTO();
         p4.setAmount(new BigDecimal("500.00"));
         p4.setPaymentMethod("Cash");

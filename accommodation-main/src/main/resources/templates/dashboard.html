@@ -3,10 +3,9 @@
 <head th:replace="~{fragments/layout :: header('Dashboard')}"></head>
 <body>
 <div class="app-container">
-    <!-- Sidebar Navigation -->
+
     <div th:replace="~{fragments/layout :: sidebar('dashboard')}"></div>
 
-    <!-- Main Content -->
     <div class="main-wrapper">
         <header class="top-navbar">
             <div class="navbar-page-title">
@@ -19,7 +18,6 @@
         <main class="content-area">
             <div th:replace="~{fragments/layout :: alerts}"></div>
 
-            <!-- Overdue Fee Critical Alert Banner -->
             <div th:if="${feeStats != null and feeStats.overdueStudentsCount > 0}"
                  class="alert" style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fca5a5; color: #991b1b; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-radius: var(--radius-md); margin-bottom: 24px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -36,7 +34,6 @@
                 </div>
             </div>
 
-            <!-- Combined Accommodation & Fee Statistics Grid -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon students">🎓</div>
@@ -103,7 +100,6 @@
                 </div>
             </div>
 
-            <!-- Overdue Fees Snapshot (Highlighted for Wardens) -->
             <div th:if="${not #lists.isEmpty(overdueFees)}" class="card" style="margin-bottom: 24px; border-left: 4px solid var(--danger);">
                 <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <div class="card-title" style="color: var(--danger); display: flex; align-items: center; gap: 8px;">
@@ -149,7 +145,6 @@
                 </div>
             </div>
 
-            <!-- Recent Bookings Table -->
             <div class="card" style="margin-bottom: 24px;">
                 <div class="card-header">
                     <div class="card-title">Recent Accommodation Bookings</div>
@@ -196,7 +191,6 @@
                 </div>
             </div>
 
-            <!-- Enrolled Students Snapshot -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">Enrolled Students Snapshot</div>

@@ -25,10 +25,6 @@ public class InAppNotificationService {
         this.notificationRepository = notificationRepository;
     }
 
-    /**
-     * Creates an in-app notification with deduplication.
-     * If a notification with the same dedupKey already exists, skips creation.
-     */
     @Transactional
     public Optional<InAppNotification> createNotification(String recipientRole, Student student,
                                                           HostelFee hostelFee, NotificationCategory category,

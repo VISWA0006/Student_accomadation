@@ -51,9 +51,6 @@ public class BookingRestController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Demonstrates HQL Query 2 via REST endpoint.
-     */
     @GetMapping("/student/{studentId}/active")
     public ResponseEntity<List<Map<String, Object>>> getActiveBookingsForStudent(@PathVariable("studentId") Long studentId) {
         List<Map<String, Object>> response = bookingService.getActiveBookingsByStudentHql(studentId).stream()

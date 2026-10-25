@@ -21,7 +21,7 @@ public class RecordPaymentDTO {
     private LocalDate paymentDate = LocalDate.now();
 
     @NotBlank(message = "Payment method is required")
-    private String paymentMethod = "UPI"; // UPI, Net Banking, Credit Card, Debit Card, Cash, Demand Draft
+    private String paymentMethod = "UPI";
 
     @NotBlank(message = "Transaction reference ID is required")
     private String transactionReference;

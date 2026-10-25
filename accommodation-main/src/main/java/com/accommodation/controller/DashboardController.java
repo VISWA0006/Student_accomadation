@@ -39,14 +39,12 @@ public class DashboardController {
         model.addAttribute("occupiedRooms", roomService.countOccupiedRooms());
         model.addAttribute("totalBookings", bookingService.countTotalBookings());
 
-        // Fee Management & Overdue Alerts
         FeeStatsDTO feeStats = feeService.getFeeStats();
         List<HostelFee> overdueFees = feeService.getOverdueFees("ALL");
         model.addAttribute("feeStats", feeStats);
         model.addAttribute("overdueFees", overdueFees);
         model.addAttribute("today", LocalDate.now());
 
-        // Recent listings for quick overview
         model.addAttribute("recentBookings", bookingService.getAllBookings());
         model.addAttribute("recentStudents", studentService.getAllStudents());
 

@@ -32,10 +32,6 @@ public class NotificationCenterController {
         this.userAccountService = userAccountService;
     }
 
-    /**
-     * Notification Center Page.
-     * Displays alerts tailored to the current active persona (Student or Admin).
-     */
     @GetMapping
     public String showNotificationCenter(@RequestParam(value = "category", required = false) NotificationCategory category,
                                          @AuthenticationPrincipal UserDetails principal,
@@ -66,9 +62,6 @@ public class NotificationCenterController {
         return "notifications/center";
     }
 
-    /**
-     * AJAX endpoint to mark a single notification as read without full page reload.
-     */
     @PostMapping("/api/{id}/read")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> markSingleAsRead(
@@ -84,9 +77,6 @@ public class NotificationCenterController {
         return ResponseEntity.ok(resp);
     }
 
-    /**
-     * Endpoint to mark all notifications as read for current persona.
-     */
     @PostMapping("/api/read-all")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> markAllAsRead(
@@ -104,9 +94,6 @@ public class NotificationCenterController {
         return ResponseEntity.ok(resp);
     }
 
-    /**
-     * AJAX endpoint to poll or query unread notification count.
-     */
     @GetMapping("/api/unread-count")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getUnreadCount(

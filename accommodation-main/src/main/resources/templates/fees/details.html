@@ -20,7 +20,6 @@
         <main class="content-area">
             <div th:replace="~{fragments/layout :: alerts}"></div>
 
-            <!-- Fee Record Summary Banner -->
             <div class="card" style="margin-bottom: 24px; border-left: 6px solid var(--primary);">
                 <div class="card-body">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
@@ -43,7 +42,6 @@
                             </div>
                         </div>
 
-                        <!-- Financial Metric Snapshot -->
                         <div style="display: flex; gap: 24px; background: var(--bg-main); padding: 16px 24px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
                             <div>
                                 <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Total Fee</div>
@@ -68,9 +66,8 @@
                 </div>
             </div>
 
-            <!-- Two-Column Grid: Record Payment Form & History -->
             <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px; align-items: flex-start;">
-                <!-- Payment Submission Form -->
+
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">💳 Record Fee Payment</div>
@@ -146,7 +143,6 @@
                     </div>
                 </div>
 
-                <!-- Payment Audit History -->
                 <div class="card">
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <div class="card-title">

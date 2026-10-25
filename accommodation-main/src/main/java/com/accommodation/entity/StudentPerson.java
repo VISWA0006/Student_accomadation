@@ -5,10 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 
-/**
- * Child entity in the JPA Inheritance hierarchy.
- * Mapped to the 'student_persons' table with a foreign key referencing 'persons(id)'.
- */
 @Entity
 @Table(name = "student_persons")
 @PrimaryKeyJoinColumn(name = "person_id")

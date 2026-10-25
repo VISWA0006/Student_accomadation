@@ -56,9 +56,6 @@ public class StudentRestController {
         return ResponseEntity.ok("Student with ID " + id + " was deleted successfully.");
     }
 
-    /**
-     * Demonstrates HQL Query 1 via REST endpoint.
-     */
     @GetMapping("/department/{department}")
     public ResponseEntity<List<StudentDTO>> getStudentsByDepartment(@PathVariable("department") String department) {
         List<StudentDTO> dtos = studentService.getStudentsByDepartmentHql(department).stream()

@@ -68,7 +68,7 @@ public class BookingController {
 
         try {
             bookingService.createBooking(bookingRequest);
-            redirectAttributes.addFlashAttribute("successMessage", 
+            redirectAttributes.addFlashAttribute("successMessage",
                     "Accommodation room booked successfully.");
             return "redirect:/bookings";
         } catch (DuplicateResourceException | RoomNotAvailableException | IllegalArgumentException ex) {

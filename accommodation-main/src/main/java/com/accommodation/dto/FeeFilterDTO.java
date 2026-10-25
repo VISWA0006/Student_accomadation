@@ -8,7 +8,7 @@ public class FeeFilterDTO {
     private String roomNumber;
     private String search;
     private PaymentStatus status;
-    private String overdueDays; // "ALL", "7", "15", "30"
+    private String overdueDays;
 
     public FeeFilterDTO() {
     }

@@ -8,15 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/**
- * Spring AOP (Aspect-Oriented Programming) Demonstration.
- * 
- * Concepts Demonstrated:
- * - @Aspect: Marks this class as an Aspect that encapsulates cross-cutting concerns (logging).
- * - @Pointcut: Specifies join points where advice should be applied (all methods in com.accommodation.service..*).
- * - @Around advice: Intercepts method invocation before and after execution, allowing execution timing
- *   and argument logging.
- */
 @Aspect
 @Component
 public class LoggingAspect {
@@ -25,7 +16,7 @@ public class LoggingAspect {
 
     @Pointcut("execution(* com.accommodation.service.*.*(..))")
     public void serviceLayerPointcut() {
-        // Pointcut signature for all methods in the service package
+
     }
 
     @Around("serviceLayerPointcut()")
@@ -42,7 +33,7 @@ public class LoggingAspect {
             return result;
         } catch (Throwable ex) {
             long executionTime = System.currentTimeMillis() - startTime;
-            log.error("[AOP LOG - EXCEPTION] Method {} failed after {} ms with message: {}", 
+            log.error("[AOP LOG - EXCEPTION] Method {} failed after {} ms with message: {}",
                     methodName, executionTime, ex.getMessage());
             throw ex;
         }

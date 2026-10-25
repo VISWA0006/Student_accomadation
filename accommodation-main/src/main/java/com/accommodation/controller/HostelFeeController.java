@@ -55,9 +55,6 @@ public class HostelFeeController {
         this.userAccountService = userAccountService;
     }
 
-    /**
-     * Admin / Warden Hostel Fee Management List with Multi-Criteria Filtering.
-     */
     @GetMapping
     public String listFees(@ModelAttribute("filter") FeeFilterDTO filter,
                            @RequestParam(defaultValue = "0") int page,
@@ -106,9 +103,6 @@ public class HostelFeeController {
         csv.append("\r\n");
     }
 
-    /**
-     * Dedicated Overdue Fee Tracking & Summary Dashboard.
-     */
     @GetMapping("/overdue")
     public String overdueDashboard(@RequestParam(value = "duration", defaultValue = "ALL") String duration,
                                    Model model) {
@@ -122,9 +116,6 @@ public class HostelFeeController {
         return "fees/overdue";
     }
 
-    /**
-     * Show form to assign a new fee to a student.
-     */
     @GetMapping("/new")
     public String showNewFeeForm(Model model) {
         if (!model.containsAttribute("feeRequest")) {
@@ -136,9 +127,6 @@ public class HostelFeeController {
         return "fees/form";
     }
 
-    /**
-     * Save new fee assignment.
-     */
     @PostMapping
     public String createFee(@Valid @ModelAttribute("feeRequest") HostelFeeRequestDTO request,
                             BindingResult result,
@@ -166,9 +154,6 @@ public class HostelFeeController {
         }
     }
 
-    /**
-     * Fee Details, Payment History, and Payment Submission Form.
-     */
     @GetMapping("/{id}")
     public String feeDetails(@PathVariable("id") Long id, Model model) {
         HostelFee fee = feeService.getFeeById(id);
@@ -186,9 +171,6 @@ public class HostelFeeController {
         return "fees/details";
     }
 
-    /**
-     * Record a payment against a hostel fee.
-     */
     @PostMapping("/{id}/pay")
     public String recordPayment(@PathVariable("id") Long id,
                                 @Valid @ModelAttribute("paymentDTO") RecordPaymentDTO paymentDTO,
@@ -221,9 +203,6 @@ public class HostelFeeController {
         }
     }
 
-    /**
-     * Printable Official Payment Receipt.
-     */
     @GetMapping("/receipts/{receiptNumber}")
     public String viewReceipt(@PathVariable("receiptNumber") String receiptNumber, Model model,
                               @AuthenticationPrincipal UserDetails principal) {
@@ -239,9 +218,6 @@ public class HostelFeeController {
         return "fees/receipt";
     }
 
-    /**
-     * Manually trigger the scheduled reminder job for live testing.
-     */
     @PostMapping("/run-reminders")
     public String runRemindersManual(RedirectAttributes redirectAttributes) {
         int count = reminderSchedulerService.runFeeAuditAndReminders();

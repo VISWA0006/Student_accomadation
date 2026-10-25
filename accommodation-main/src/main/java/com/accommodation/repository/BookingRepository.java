@@ -28,10 +28,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     boolean existsByStudentIdAndRoomIdAndStatus(Long studentId, Long roomId, String status);
 
-    /**
-     * Finds all ACTIVE bookings for a given student via HQL.
-     * References the entity name 'Booking' and navigated association 'b.student.id'.
-     */
     @Query("SELECT b FROM Booking b WHERE b.student.id = :studentId AND b.status = 'ACTIVE'")
     List<Booking> findActiveBookingsByStudentHql(@Param("studentId") Long studentId);
 }

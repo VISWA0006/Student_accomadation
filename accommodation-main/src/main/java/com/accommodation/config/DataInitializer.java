@@ -10,10 +10,6 @@ import org.springframework.context.annotation.Configuration;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Initializes sample data on application startup if database is empty.
- * Ensures the system is ready for demonstration right after launching.
- */
 @Configuration
 public class DataInitializer implements CommandLineRunner {
 
@@ -51,7 +47,6 @@ public class DataInitializer implements CommandLineRunner {
         if (studentRepository.count() == 0 && roomRepository.count() == 0) {
             log.info("Populating initial sample data...");
 
-            // 1. Create Sample Students with Gender
             Student s1 = new Student("Aarav Sharma", "2024CS101", "aarav.sharma@college.edu", "+91 9876543210", "Computer Science", 2, "MALE");
             Student s2 = new Student("Priya Nair", "2024EC202", "priya.nair@college.edu", "+91 9876543211", "Electronics", 3, "FEMALE");
             Student s3 = new Student("Rahul Verma", "2024ME303", "rahul.verma@college.edu", "+91 9876543212", "Mechanical", 1, "MALE");
@@ -60,7 +55,6 @@ public class DataInitializer implements CommandLineRunner {
 
             studentRepository.saveAll(List.of(s1, s2, s3, s4, s5));
 
-            // 2. Create Sample Rooms with Split Hostel Types (BOYS / GIRLS)
             Room r1 = new Room("A-101", "Kaveri Boys Hostel", "Single", 1, 1, 6500.0, "BOYS");
             Room r2 = new Room("B-201", "Ganga Boys Hostel", "Double Sharing", 2, 0, 4500.0, "BOYS");
             Room r3 = new Room("G-101", "Yamuna Girls Hostel", "Double Sharing", 2, 1, 4800.0, "GIRLS");
@@ -68,23 +62,19 @@ public class DataInitializer implements CommandLineRunner {
 
             roomRepository.saveAll(List.of(r1, r2, r3, r4));
 
-            // 3. Create Sample Bookings (Aarav in Boys Hostel, Priya in Girls Hostel)
             Booking b1 = new Booking(s1, r1, LocalDate.now().minusDays(15), "ACTIVE");
             Booking b2 = new Booking(s2, r3, LocalDate.now().minusDays(5), "ACTIVE");
 
             bookingRepository.saveAll(List.of(b1, b2));
 
-            // 4. Create Inheritance Mapping Sample Records (Person & StudentPerson)
             Person p1 = new Person("Dr. S. Ramanathan", "warden@college.edu");
             personRepository.save(p1);
 
             StudentPerson sp1 = new StudentPerson("Vikram Sundar", "vikram.s@college.edu", "2024SP901", "M.Tech Software Eng");
             studentPersonRepository.save(sp1);
 
-            // 5. Seed Initial Hostel Fees Covering All Payment Status Scenarios
             LocalDate today = LocalDate.now();
 
-            // Scenario 1: PAID IN FULL (Aarav Sharma - Monthly Fee)
             HostelFee f1 = new HostelFee(s1, "Kaveri Boys Hostel", "A-101", FeeType.MONTHLY_HOSTEL_FEE, 6500.0, today.minusDays(5));
             f1.setPaidAmount(6500.0);
             f1.setPaymentDate(today.minusDays(6));
@@ -107,7 +97,6 @@ public class DataInitializer implements CommandLineRunner {
             );
             notificationRepository.save(n1);
 
-            // Scenario 2: PARTIALLY PAID (Priya Nair - Mess Fee, paid ₹2000 of ₹4500, balance ₹2500 due in 12 days)
             HostelFee f2 = new HostelFee(s2, "Yamuna Girls Hostel", "G-101", FeeType.MESS_FEE, 4500.0, today.plusDays(12));
             f2.setPaidAmount(2000.0);
             f2.setPaymentDate(today.minusDays(2));
@@ -130,7 +119,6 @@ public class DataInitializer implements CommandLineRunner {
             );
             notificationRepository.save(n2);
 
-            // Scenario 3: OVERDUE (Rahul Verma - Monthly Fee, due 12 days ago, unpaid)
             HostelFee f3 = new HostelFee(s3, "Ganga Boys Hostel", "B-201", FeeType.MONTHLY_HOSTEL_FEE, 4500.0, today.minusDays(12));
             f3.recalculateStatus(today);
             feeRepository.save(f3);
@@ -149,7 +137,6 @@ public class DataInitializer implements CommandLineRunner {
             );
             notificationRepository.saveAll(List.of(n3, n3Admin));
 
-            // Scenario 4: UPCOMING (Sneha Patel - Maintenance Fee, due in 4 days)
             HostelFee f4 = new HostelFee(s4, "Saraswati Girls Hostel", "G-201", FeeType.MAINTENANCE_FEE, 1200.0, today.plusDays(4));
             f4.recalculateStatus(today);
             feeRepository.save(f4);
@@ -162,7 +149,6 @@ public class DataInitializer implements CommandLineRunner {
             );
             notificationRepository.save(n4);
 
-            // Scenario 5: PENDING (Kavya Reddy - Other Charges, due in 25 days)
             HostelFee f5 = new HostelFee(s5, "Yamuna Girls Hostel", "G-101", FeeType.OTHER_CHARGES, 1800.0, today.plusDays(25));
             f5.recalculateStatus(today);
             feeRepository.save(f5);

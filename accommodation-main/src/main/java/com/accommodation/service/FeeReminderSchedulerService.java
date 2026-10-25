@@ -12,11 +12,6 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-/**
- * Automated scheduled job service that scans all hostel fee records,
- * recalculates their live status, and dispatches upcoming, due today, and recurring overdue alerts.
- * Uses deterministic deduplication keys so repeated scheduler executions are completely safe and idempotent.
- */
 @Service
 public class FeeReminderSchedulerService {
 
@@ -31,10 +26,6 @@ public class FeeReminderSchedulerService {
         this.inAppNotificationService = inAppNotificationService;
     }
 
-    /**
-     * Runs daily at midnight, or manually via trigger.
-     * Checks all hostel fee records and triggers appropriate alerts.
-     */
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public int runFeeAuditAndReminders() {
@@ -44,11 +35,10 @@ public class FeeReminderSchedulerService {
         int notificationsDispatched = 0;
 
         for (HostelFee fee : fees) {
-            // Recompute dynamic status against current date
+
             fee.recalculateStatus(today);
             feeRepository.save(fee);
 
-            // Fully paid fees never generate reminders
             if (fee.getStatus() == PaymentStatus.PAID || fee.getRemainingBalance().signum() <= 0) {
                 continue;
             }
@@ -56,7 +46,6 @@ public class FeeReminderSchedulerService {
             long daysUntilDue = ChronoUnit.DAYS.between(today, fee.getDueDate());
             long daysOverdue = ChronoUnit.DAYS.between(fee.getDueDate(), today);
 
-            // A. UPCOMING REMINDERS: 7 days, 3 days, 1 day
             if (daysUntilDue == 7) {
                 notificationsDispatched += sendUpcomingReminder(fee, 7, today);
             } else if (daysUntilDue == 3) {
@@ -65,14 +54,12 @@ public class FeeReminderSchedulerService {
                 notificationsDispatched += sendUpcomingReminder(fee, 1, today);
             }
 
-            // B. DUE TODAY
             if (daysUntilDue == 0) {
                 notificationsDispatched += sendDueTodayReminder(fee, today);
             }
 
-            // C. OVERDUE REMINDERS: Dispatched when overdue, and repeated every 3 days (e.g. Day 1, 4, 7, 10, ...)
             if (fee.getStatus() == PaymentStatus.OVERDUE && daysOverdue > 0) {
-                // Trigger on day 1, or every 3 days thereafter
+
                 if (daysOverdue == 1 || (daysOverdue % 3 == 1)) {
                     notificationsDispatched += sendOverdueReminder(fee, daysOverdue, today);
                 }
@@ -143,7 +130,6 @@ public class FeeReminderSchedulerService {
                 dedupKey
         );
 
-        // Also alert Administrator
         String adminDedupKey = "ADMIN-OVERDUE-" + fee.getId() + "-DAY-" + daysOverdue;
         inAppNotificationService.createNotification(
                 "ADMIN",

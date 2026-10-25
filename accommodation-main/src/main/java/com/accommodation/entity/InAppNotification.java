@@ -5,11 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
-/**
- * Entity representing an In-App Notification.
- * Mapped to 'in_app_notifications' table.
- * Supports read/unread states, deduplication keys, and role-based filtering.
- */
 @Entity
 @Table(name = "in_app_notifications",
        indexes = {
@@ -25,7 +20,7 @@ public class InAppNotification {
 
     @NotBlank
     @Column(name = "recipient_role", nullable = false)
-    private String recipientRole; // "STUDENT" or "ADMIN"
+    private String recipientRole;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "student_id")

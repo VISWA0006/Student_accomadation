@@ -1,4 +1,3 @@
-// Student Accommodation Management System - Client Script
 
 function updateGlobalUnreadCounter() {
     fetch('/notifications/api/unread-count')
@@ -32,12 +31,12 @@ function updateGlobalUnreadCounter() {
             }
         })
         .catch(err => {
-            // Silently fail if server is reloading
+
         });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Auto-dismiss alerts after 5 seconds
+
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
         setTimeout(() => {
@@ -47,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000);
     });
 
-    // 2. Client-side room availability hints on booking form
     const roomSelect = document.getElementById('roomSelect');
     const roomHint = document.getElementById('roomHint');
     if (roomSelect && roomHint) {
@@ -62,6 +60,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. Initialize unread notification badges
     updateGlobalUnreadCounter();
 });

@@ -13,10 +13,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Global Exception Handler for REST APIs.
- * Translates exceptions into consistent, meaningful JSON responses.
- */
 @RestControllerAdvice(basePackages = "com.accommodation.controller.api")
 public class GlobalExceptionHandler {
 

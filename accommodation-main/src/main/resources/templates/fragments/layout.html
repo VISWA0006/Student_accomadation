@@ -87,9 +87,8 @@
     </div>
 </div>
 
-<!-- Reusable Navbar Actions fragment with Notification Bell and Role Switcher -->
 <div th:fragment="navbarActions(activePage)" class="navbar-actions">
-    <!-- Notification Bell Icon -->
+
     <a th:href="@{/notifications}" class="notif-bell-btn" title="Notification Center">
         <span class="bell-icon">🔔</span>
         <span id="navNotifBadge" class="bell-badge" style="display: none;">0</span>

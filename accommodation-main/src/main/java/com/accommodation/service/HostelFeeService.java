@@ -45,9 +45,6 @@ public class HostelFeeService {
         this.inAppNotificationService = inAppNotificationService;
     }
 
-    /**
-     * Creates a new hostel fee assignment for a student.
-     */
     @Transactional
     public HostelFee createFee(HostelFeeRequestDTO request) {
         BigDecimal totalAmount = currencyAmount(request.getTotalAmount(), "Fee amount");
@@ -65,7 +62,6 @@ public class HostelFeeService {
 
         HostelFee saved = feeRepository.save(fee);
 
-        // Notify student about new fee assignment
         String dedupKey = "FEE_ASSIGNED-" + saved.getId();
         inAppNotificationService.createNotification(
                 "STUDENT",
@@ -88,7 +84,7 @@ public class HostelFeeService {
     public HostelFee getFeeById(Long id) {
         HostelFee fee = feeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hostel Fee not found with ID: " + id));
-        // Dynamically verify and refresh status against today's date
+
         fee.recalculateStatus(LocalDate.now());
         return fee;
     }
@@ -116,10 +112,8 @@ public class HostelFeeService {
                 filter.getStatus()
         );
 
-        // Always recompute dynamically in case due dates elapsed
         fees.forEach(f -> f.recalculateStatus(today));
 
-        // Apply overdue days duration filter if specified
         if (filter.getOverdueDays() != null && !filter.getOverdueDays().equalsIgnoreCase("ALL")) {
             long minDays = parseOverdueDays(filter.getOverdueDays());
             fees = fees.stream()
@@ -187,15 +181,6 @@ public class HostelFeeService {
         }
     }
 
-    /**
-     * Records a payment against a hostel fee record inside an ACID transaction.
-     * Enforces all business rules:
-     * - Payment amount must be > 0 and cannot exceed remaining balance.
-     * - Duplicate transaction references are rejected.
-     * - Automatically updates remaining balance and payment status.
-     * - Fully paid fees are never marked overdue.
-     * - Persists in-app notifications for the student and administrator.
-     */
     @Transactional
     public PaymentTransaction recordPayment(Long feeId, RecordPaymentDTO paymentDTO) {
         HostelFee fee = feeRepository.findByIdForUpdate(feeId)
@@ -204,24 +189,20 @@ public class HostelFeeService {
         LocalDate today = LocalDate.now();
         fee.recalculateStatus(today);
 
-        // Validation: Cannot pay already fully paid fee
         if (fee.getStatus() == PaymentStatus.PAID || fee.getRemainingBalance().signum() <= 0) {
             throw new IllegalArgumentException("This hostel fee has already been PAID in full! Remaining balance is ₹0.00.");
         }
 
-        // Validation: Payment amount must be > 0
         if (paymentDTO.getAmount() == null || paymentDTO.getAmount().signum() <= 0) {
             throw new IllegalArgumentException("Payment amount must be greater than ₹0.00.");
         }
 
-        // Validation: Payment amount must not exceed remaining balance
         BigDecimal paymentAmount = currencyAmount(paymentDTO.getAmount(), "Payment amount");
         if (paymentAmount.compareTo(fee.getRemainingBalance()) > 0) {
             throw new IllegalArgumentException("Payment amount (₹" + paymentDTO.getAmount() +
                     ") exceeds outstanding balance (₹" + fee.getRemainingBalance() + ")! Overpayments are not supported.");
         }
 
-        // Validation: Prevent duplicate payment entries
         String txnRef = paymentDTO.getTransactionReference() != null ? paymentDTO.getTransactionReference().trim() : "";
         if (txnRef.isEmpty()) {
             throw new IllegalArgumentException("Transaction reference is required.");
@@ -230,22 +211,18 @@ public class HostelFeeService {
             throw new DuplicateResourceException("A payment transaction with reference '" + txnRef + "' already exists!");
         }
 
-        // Generate unique official receipt number
         String receiptNumber = "REC-" + today.format(DateTimeFormatter.BASIC_ISO_DATE) + "-" +
                 UUID.randomUUID().toString().substring(0, 6).toUpperCase();
 
-        // Update fee financials
         BigDecimal newPaidAmount = fee.getPaidAmount().add(paymentAmount);
         fee.setPaidAmount(newPaidAmount);
         fee.setPaymentDate(paymentDTO.getPaymentDate() != null ? paymentDTO.getPaymentDate() : today);
         fee.setPaymentMethod(paymentDTO.getPaymentMethod());
         fee.setTransactionReference(txnRef);
 
-        // Recompute status (will transition to PAID if balance reaches 0, or stay PARTIALLY_PAID / OVERDUE)
         fee.recalculateStatus(today);
         HostelFee updatedFee = feeRepository.save(fee);
 
-        // Create and save payment transaction audit record
         PaymentTransaction transaction = new PaymentTransaction(
                 updatedFee,
                 fee.getStudent(),
@@ -259,7 +236,6 @@ public class HostelFeeService {
         );
         PaymentTransaction savedTransaction = transactionRepository.save(transaction);
 
-        // Automated in-app notifications
         boolean isFullyPaid = updatedFee.getStatus() == PaymentStatus.PAID;
         NotificationCategory notifCat = isFullyPaid ? NotificationCategory.PAYMENT_CONFIRMATION : NotificationCategory.PARTIAL_PAYMENT;
 
@@ -282,7 +258,6 @@ public class HostelFeeService {
                 "PAYMENT-" + savedTransaction.getId()
         );
 
-        // Admin notification
         String adminMsg = "Payment of ₹" + paymentDTO.getAmount() + " recorded for " + fee.getStudent().getFullName() +
                 " (" + fee.getFeeType().getDisplayName() + ", Room " + fee.getRoomNumber() + "). " +
                 (isFullyPaid ? "Fee is now fully settled." : "Remaining balance: ₹" + updatedFee.getRemainingBalance());
